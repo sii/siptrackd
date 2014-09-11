@@ -1,0 +1,62 @@
+from twisted.web import xmlrpc
+
+from siptrackdlib import event
+
+from siptrackd_twisted import helpers
+from siptrackd_twisted import gatherer
+from siptrackd_twisted import baserpc
+
+class CommandQueueRPC(baserpc.BaseRPC):
+    node_type = 'command queue'
+
+class CommandRPC(baserpc.BaseRPC):
+    node_type = 'command'
+
+    @helpers.error_handler
+    @helpers.validate_session
+    def xmlrpc_set_freetext(self, oid, value):
+        """Set value."""
+        node = self.getOID(oid)
+        node._freetext.set(value)
+        return value
+
+class EventRPC(baserpc.BaseRPC):
+    pass
+
+class EventTriggerRPC(baserpc.BaseRPC):
+    node_type = 'event trigger'
+
+class EventTriggerRuleRPC(baserpc.BaseRPC):
+    pass
+
+class EventTriggerRulePythonRPC(baserpc.BaseRPC):
+    node_type = 'event trigger rule python'
+
+    @helpers.error_handler
+    @helpers.validate_session
+    def xmlrpc_set_code(self, oid, value):
+        """Set value."""
+        node = self.getOID(oid)
+        node._code.set(value)
+        return value
+
+def command_queue_data_extractor(node, user):
+    return []
+
+def command_data_extractor(node, user):
+    return [node._freetext.get()]
+
+def event_trigger_data_extractor(node, user):
+    return []
+
+def event_trigger_rule_python_data_extractor(node, user):
+    return [node._code.get(), node._error.get(), node._error_timestamp.get()]
+
+gatherer.node_data_registry.register(event.CommandQueue,
+        command_queue_data_extractor)
+gatherer.node_data_registry.register(event.Command,
+        command_data_extractor)
+gatherer.node_data_registry.register(event.EventTrigger,
+        event_trigger_data_extractor)
+gatherer.node_data_registry.register(event.EventTriggerRulePython,
+        event_trigger_rule_python_data_extractor)
