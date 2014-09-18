@@ -12,22 +12,20 @@ class ConfigRPC(baserpc.BaseRPC):
 class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
     node_type = 'config network autoassign'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, network_tree_oid, range_start,
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, network_tree_oid, range_start,
             range_end):
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        nt = self.object_store.getOID(network_tree_oid, 'network tree', user = self.user)
-        obj = parent.add(self.user, 'config network autoassign', nt, range_start,
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        nt = self.object_store.getOID(network_tree_oid, 'network tree', user = session.user)
+        obj = parent.add(session.user, 'config network autoassign', nt, range_start,
                 range_end)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_values(self, oid, network_tree_oid, range_start,
+    @helpers.ValidateSession()
+    def xmlrpc_set_values(self, session, oid, network_tree_oid, range_start,
             range_end):
-        node = self.object_store.getOID(oid, 'config network autoassign', user = self.user)
-        nt = self.object_store.getOID(network_tree_oid, 'network tree', user = self.user)
+        node = self.object_store.getOID(oid, 'config network autoassign', user = session.user)
+        nt = self.object_store.getOID(network_tree_oid, 'network tree', user = session.user)
         node.network_tree.set(nt)
         node.range_start.set(range_start)
         node.range_end.set(range_end)
@@ -36,24 +34,21 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
 class ConfigValueRPC(baserpc.BaseRPC):
     node_type = 'config value'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, name, value):
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'config value', name, value)
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, name, value):
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'config value', name, value)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_name(self, oid, name):
-        node = self.getOID(oid)
+    @helpers.ValidateSession()
+    def xmlrpc_set_name(self, session, oid, name):
+        node = self.getOID(session, oid)
         node.name.set(name)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_value(self, oid, value):
-        node = self.getOID(oid)
+    @helpers.ValidateSession()
+    def xmlrpc_set_value(self, session, oid, value):
+        node = self.getOID(session, oid)
         node.value.set(value)
         return True
 
