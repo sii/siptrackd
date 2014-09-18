@@ -108,18 +108,16 @@ class SiptrackdRPC(baserpc.BaseRPC):
         except errors.InvalidSessionError:
             return 0
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_session_user_oid(self):
+    @helpers.ValidateSession()
+    def xmlrpc_session_user_oid(self, session):
         """Return the oid for the user of the current session."""
-        ret = self.session.user.user.oid
+        ret = session.user.user.oid
         return ret
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_oid_exists(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_oid_exists(self, session, oid):
         """Check if an oid exists."""
-        log.debug('oid_exists %s' % (oid), self.user)
+        log.debug('oid_exists %s' % (oid), session.user)
         try:
             obj = self.object_store.getOID(oid)
         except siptrackdlib.errors.NonExistent:
@@ -127,29 +125,26 @@ class SiptrackdRPC(baserpc.BaseRPC):
         return True
     xmlrpc_location_exists = xmlrpc_oid_exists
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_move_oid(self, oid, new_parent_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_move_oid(self, session, oid, new_parent_oid):
         """Move an oid to a new parent."""
-        obj = self.object_store.getOID(oid, user = self.user)
+        obj = self.object_store.getOID(oid, user = session.user)
         if new_parent_oid in ['', 'ROOT']:
             new_parent = self.object_store.view_tree
         else:
             new_parent = self.object_store.getOID(new_parent_oid,
-                    user = self.user)
-        obj.relocate(new_parent, user = self.user)
+                    user = session.user)
+        obj.relocate(new_parent, user = session.user)
         return True
     xmlrpc_relocate = xmlrpc_move_oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_iter_fetch(self, oids, max_depth = -1, include_parents = True,
+    @helpers.ValidateSession()
+    def xmlrpc_iter_fetch(self, session, oids, max_depth = -1, include_parents = True,
             include_associations = True, include_references = True):
         """Fetch data from a oid (and it's children)."""
         if type(oids) != list:
             oids = [oids]
-        session = self.session
-        listcreator = gatherer.ListCreator(self.object_store, self.user)
+        listcreator = gatherer.ListCreator(self.object_store, session.user)
         nodes = []
         for oid in oids:
             if oid in ['', 'ROOT']:
@@ -161,30 +156,26 @@ class SiptrackdRPC(baserpc.BaseRPC):
                 include_parents = False
                 include_associations = False
                 include_references = False
-            node = self.object_store.getOID(oid, user = self.user)
+            node = self.object_store.getOID(oid, user = session.user)
             nodes.append(node)
         build_iter = listcreator.iterBuild(nodes, max_depth, include_parents,
                 include_associations, include_references)
         iter_id = session.data_iterators.add(build_iter)
         return session.data_iterators.threadGetData(iter_id)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_iter_fetch_next(self, iter_id):
+    @helpers.ValidateSession()
+    def xmlrpc_iter_fetch_next(self, session, iter_id):
         """Fetch data from a oid (and it's children)."""
-        session = self.session
         return session.data_iterators.threadGetData(iter_id)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_iter_quicksearch(self, search_pattern, attr_limit = [],
+    @helpers.ValidateSession()
+    def xmlrpc_iter_quicksearch(self, session, search_pattern, attr_limit = [],
             include = [], exclude = [], include_data = True,
             include_parents = True, include_associations = True,
             include_references = True, fuzzy = True, default_fields = ['name', 'description'],
             max_results = None):
         """Search for objects starting at oid."""
-        user = self.user
-        session = self.session
+        user = session.user
         searcher = self.object_store.quicksearch(search_pattern,
                                                  attr_limit,
                                                  include,
@@ -199,74 +190,62 @@ class SiptrackdRPC(baserpc.BaseRPC):
         iter_id = session.data_iterators.add(build_iter)
         return session.data_iterators.threadGetData(iter_id)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_iter_quicksearch_next(self, iter_id):
-        session = self.session
+    @helpers.ValidateSession()
+    def xmlrpc_iter_quicksearch_next(self, session, iter_id):
         return session.data_iterators.threadGetData(iter_id)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_iter_search(self, oid, search_pattern, attr_limit = [],
+    @helpers.ValidateSession()
+    def xmlrpc_iter_search(self, session, oid, search_pattern, attr_limit = [],
             include = [], exclude = [], no_match_break = False,
             include_data = True, include_parents = True, include_associations = True,
             include_references = True):
         """Search for objects starting at oid."""
-        session = self.session
         if oid in ['', 'ROOT']:
             oid = self.object_store.view_tree.oid
-        root = self.object_store.getOID(oid, user = self.user)
+        root = self.object_store.getOID(oid, user = session.user)
         searcher = root.search(search_pattern, attr_limit, include,
-                exclude, no_match_break, user = self.user)
-        listcreator = gatherer.ListCreator(self.object_store, self.user)
+                exclude, no_match_break, user = session.user)
+        listcreator = gatherer.ListCreator(self.object_store, session.user)
         build_iter = listcreator.iterSearch(searcher, include_data, include_parents,
                 include_associations, include_references)
         iter_id = session.data_iterators.add(build_iter)
         return session.data_iterators.threadGetData(iter_id)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_iter_search_next(self, iter_id):
-        session = self.session
+    @helpers.ValidateSession()
+    def xmlrpc_iter_search_next(self, session, iter_id):
         return session.data_iterators.threadGetData(iter_id)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_associate(self, oid_1, oid_2):
+    @helpers.ValidateSession()
+    def xmlrpc_associate(self, session, oid_1, oid_2):
         """Create an association between two objects."""
-        obj_1 = self.object_store.getOID(oid_1, user = self.user)
-        obj_2 = self.object_store.getOID(oid_2, user = self.user)
+        obj_1 = self.object_store.getOID(oid_1, user = session.user)
+        obj_2 = self.object_store.getOID(oid_2, user = session.user)
         obj_1.associate(obj_2)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_disassociate(self, oid_1, oid_2):
+    @helpers.ValidateSession()
+    def xmlrpc_disassociate(self, session, oid_1, oid_2):
         """Remove an association between two objects."""
-        obj_1 = self.object_store.getOID(oid_1, user = self.user)
-        obj_2 = self.object_store.getOID(oid_2, user = self.user)
+        obj_1 = self.object_store.getOID(oid_1, user = session.user)
+        obj_2 = self.object_store.getOID(oid_2, user = session.user)
         obj_1.disassociate(obj_2)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_is_associated(self, oid_1, oid_2):
+    @helpers.ValidateSession()
+    def xmlrpc_is_associated(self, session, oid_1, oid_2):
         """Remove an association between two objects."""
-        obj_1 = self.object_store.getOID(oid_1, user = self.user)
-        obj_2 = self.object_store.getOID(oid_2, user = self.user)
+        obj_1 = self.object_store.getOID(oid_1, user = session.user)
+        obj_2 = self.object_store.getOID(oid_2, user = session.user)
         return obj_1.isAssociated(obj_2)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_session_timeout(self, timeout):
+    @helpers.ValidateSession()
+    def xmlrpc_set_session_timeout(self, session, timeout):
         """Set a new max session idle timeout value for an active session."""
-        self.session.setMaxIdle(timeout)
+        session.setMaxIdle(timeout)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_administrator
-    def xmlrpc_list_sessions(self):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_list_sessions(self, session):
         """List current active sessions."""
         sessions = []
         for session_id in self.session_handler.sessions:
@@ -279,32 +258,24 @@ class SiptrackdRPC(baserpc.BaseRPC):
             sessions.append(session)
         return sessions
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_administrator
-    def xmlrpc_kill_session(self, session_id):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_kill_session(self, session, session_id):
         """Kill specified session."""
         self.session_handler.endSession(session_id)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_administrator
-    def xmlrpc_flush_gatherer_data_cache(self):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_flush_gatherer_data_cache(self, session):
         gatherer.entity_data_cache.flush()
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_administrator
-    def xmlrpc_get_oid_gatherer_data_cache(self, oid):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_get_oid_gatherer_data_cache(self, session, oid):
         ret = gatherer.entity_data_cache.cache.get(oid, False)
         return ret
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_administrator
-    def xmlrpc_log_permission_cache(self, oid, user_oid = None):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_log_permission_cache(self, session, oid, user_oid = None):
         node = self.object_store.getOID(oid)
         user = None
         if user_oid:
@@ -312,10 +283,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
         node.logPermissionCache(user)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_administrator
-    def xmlrpc_reload_objectstore(self):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_reload_objectstore(self, session):
         log.msg('Reloading object store by command')
         try:
             self.object_store.reload()
