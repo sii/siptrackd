@@ -9,25 +9,21 @@ from siptrackd_twisted import baserpc
 class PermissionRPC(baserpc.BaseRPC):
     node_type = 'permission'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_admin
-    def xmlrpc_add(self, parent_oid, read_access, write_access, users, groups,
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_add(self, session, parent_oid, read_access, write_access, users, groups,
             all_users, recursive):
         """Create a new permission."""
-        users = [self.object_store.getOID(oid, user = self.user) for oid in users]
-        groups = [self.object_store.getOID(oid, user = self.user) for oid in groups]
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'permission', read_access, write_access,
+        users = [self.object_store.getOID(oid, user = session.user) for oid in users]
+        groups = [self.object_store.getOID(oid, user = session.user) for oid in groups]
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'permission', read_access, write_access,
                 users, groups, all_users, recursive)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_admin
-    def xmlrpc_delete(self, oid, recursive = True):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         node.delete(recursive)
         return True
 
