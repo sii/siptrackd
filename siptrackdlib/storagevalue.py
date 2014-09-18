@@ -6,7 +6,6 @@ class StorageValue(object):
 
     def __init__(self, node, name, value = None, validator = None):
         self.node = node
-        self.node._storage_values.append(self)
         self.oid = node.oid
         self.object_store = node.branch.tree.ext_data
         self.name = name

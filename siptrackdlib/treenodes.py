@@ -138,7 +138,6 @@ class BaseNode(object):
         self.branch = branch
         # Contains a list of all StorageValue instances used by the node.
         # Updated by StorageValue.__init__.
-        self._storage_values = []
         self._storage_actions = []
         self.object_store = self.branch.tree.ext_data
         self.searcher = self.object_store.searcher
@@ -166,7 +165,6 @@ class BaseNode(object):
         self.object_store = None
         self.searcher = None
         self.perm_cache = None
-        self._storage_values = None
         self._storage_actions = None
 
     def storageAction(self, action, args = None):
