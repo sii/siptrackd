@@ -12,11 +12,10 @@ class CommandQueueRPC(baserpc.BaseRPC):
 class CommandRPC(baserpc.BaseRPC):
     node_type = 'command'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_freetext(self, oid, value):
+    @helpers.ValidateSession()
+    def xmlrpc_set_freetext(self, session, oid, value):
         """Set value."""
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         node._freetext.set(value)
         return value
 
@@ -32,11 +31,10 @@ class EventTriggerRuleRPC(baserpc.BaseRPC):
 class EventTriggerRulePythonRPC(baserpc.BaseRPC):
     node_type = 'event trigger rule python'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_code(self, oid, value):
+    @helpers.ValidateSession()
+    def xmlrpc_set_code(self, session, oid, value):
         """Set value."""
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         node._code.set(value)
         return value
 
