@@ -7,40 +7,34 @@ from siptrackd_twisted import gatherer
 from siptrackd_twisted import baserpc
 
 class ViewTreeRPC(baserpc.BaseRPC):
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_get_user_manager(self):
+    @helpers.ValidateSession()
+    def xmlrpc_get_user_manager(self, session):
         """Get the default user manager."""
         return self.view_tree.user_manager.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_admin
-    def xmlrpc_set_user_manager(self, user_manager_oid):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_set_user_manager(self, session, user_manager_oid):
         """Set the default user manager.
         
         This will also terminate all current sessions.
         """
         um = self.object_store.getOID(user_manager_oid,
-                ['user manager local', 'user manager ldap', 'user manager active directory'], user = self.user)
+                ['user manager local', 'user manager ldap', 'user manager active directory'], user = session.user)
         self.view_tree.user_manager = um
         self.session_handler.killAllSessions()
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    @helpers.require_admin
-    def xmlrpc_delete(self):
+    @helpers.ValidateSession(require_admin=True)
+    def xmlrpc_delete(self, session):
         return False
 
 class ViewRPC(baserpc.BaseRPC):
     node_type = 'view'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session):
         """Create a new view."""
-        obj = self.view_tree.add(self.user, 'view')
+        obj = self.view_tree.add(session.user, 'view')
         return obj.oid
 
 def view_tree_data_extractor(node, user):
