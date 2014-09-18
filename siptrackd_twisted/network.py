@@ -16,33 +16,30 @@ class NetworkRangeRPC(baserpc.BaseRPC):
 class NetworkIPV4RPC(baserpc.BaseRPC):
     node_type = 'ipv4 network'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, address):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, address):
         """Create a new network."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         if parent.class_name != 'network tree':
             parent = parent.getParent('network tree')
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
-        obj = parent.addNetwork(self.user, address)
+        obj = parent.addNetwork(session.user, address)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_prune(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_prune(self, session, oid):
         """Prune a network.
         
         The network will be removed if it has no associations/references.
         """
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         return node.prune()
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_find_missing_networks(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_find_missing_networks(self, session, oid):
         """Find missing (non-existent) subnets of the given network."""
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         missing = []
         for n in node.iterMissingNetworks():
             missing.append(n.printableCIDR())
@@ -51,33 +48,30 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
 class NetworkIPV6RPC(baserpc.BaseRPC):
     node_type = 'ipv6 network'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, address):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, address):
         """Create a new network."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         if parent.class_name != 'network tree':
             parent = parent.getParent('network tree')
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
-        obj = parent.addNetwork(self.user, address)
+        obj = parent.addNetwork(session.user, address)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_prune(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_prune(self, session, oid):
         """Prune a network.
         
         The network will be removed if it has no associations/references.
         """
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         return node.prune()
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_find_missing_networks(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_find_missing_networks(self, session, oid):
         """Find missing (non-existent) subnets of the given network."""
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         missing = []
         for n in node.iterMissingNetworks():
             missing.append(str(n))
@@ -86,95 +80,87 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
 class NetworkRangeIPV4RPC(baserpc.BaseRPC):
     node_type = 'ipv4 network range'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, range):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, range):
         """Create a new network range."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         if parent.class_name != 'network tree':
             parent = parent.getParent('network tree')
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
-        obj = parent.addRange(self.user, range)
+        obj = parent.addRange(session.user, range)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_prune(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_prune(self, session, oid):
         """Prune a network range.
         
         The range will be removed if it has no associations/references.
         """
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         return node.prune()
 
 class NetworkRangeIPV6RPC(baserpc.BaseRPC):
     node_type = 'ipv6 network range'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, range):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, range):
         """Create a new network range."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         if parent.class_name != 'network tree':
             parent = parent.getParent('network tree')
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
-        obj = parent.addRange(self.user, range)
+        obj = parent.addRange(session.user, range)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_prune(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_prune(self, session, oid):
         """Prune a network range.
         
         The range will be removed if it has no associations/references.
         """
-        node = self.getOID(oid)
+        node = self.getOID(session, oid)
         return node.prune()
 
 class NetworkTreeRPC(baserpc.BaseRPC):
     node_type = 'network tree'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, protocol):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, protocol):
         """Create a new network tree."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'network tree', protocol)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'network tree', protocol)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_network_exists(self, oid, address):
+    @helpers.ValidateSession()
+    def xmlrpc_network_exists(self, session, oid, address):
         """Check if a network exists in a network tree.
         
         If the network exists, return its oid, otherwise False.
         """
-        nt = self.getOID(oid)
+        nt = self.getOID(session, oid)
         network = nt.getNetwork(address)
         if network:
             return network.oid
         return False
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_range_exists(self, oid, range):
+    @helpers.ValidateSession()
+    def xmlrpc_range_exists(self, session, oid, range):
         """Check if a network range exists in a network tree.
         
         If the network range exists, return its oid, otherwise False.
         """
-        nt = self.getOID(oid)
+        nt = self.getOID(session, oid)
         range = nt.getRange(range)
         if range:
             return range.oid
         return False
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_find_missing_networks(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_find_missing_networks(self, session, oid):
         """Find missing (non-existent) subnets of the network tree."""
-        nt = self.getOID(oid)
+        nt = self.getOID(session, oid)
         missing = []
         for n in nt.iterMissingNetworks():
             missing.append(str(n))
