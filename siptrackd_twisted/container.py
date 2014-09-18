@@ -11,23 +11,21 @@ from siptrackd_twisted import baserpc
 class ContainerTreeRPC(baserpc.BaseRPC):
     node_type = 'container tree'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid):
         """Create a new container tree."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'container tree')
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'container tree')
         return obj.oid
 
 class ContainerRPC(baserpc.BaseRPC):
     node_type = 'container'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid):
         """Create a new container."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'container')
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'container')
         return obj.oid
 
 gatherer.node_data_registry.register(container.ContainerTree,
