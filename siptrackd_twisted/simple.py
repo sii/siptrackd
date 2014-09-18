@@ -16,16 +16,15 @@ class SimpleRPC(baserpc.BaseRPC):
                 match = False
         return match
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_search(self, oid, search_patterns, ret_attr, include = [],
+    @helpers.ValidateSession()
+    def xmlrpc_search(self, session, oid, search_patterns, ret_attr, include = [],
             exclude = []):
         re_ptrs = []
         for name, value in search_patterns:
             re_ptrs.append((name, re.compile(value, re.IGNORECASE)))
         if oid in ['', 'ROOT']:
             oid = self.object_store.view_tree.oid
-        root = self.object_store.getOID(oid, user = self.user)
+        root = self.object_store.getOID(oid, user = session.user)
         node_filter = treenodes.NodeFilter(include, exclude,
                 no_match_break = False)
         local_include = ['attribute', 'versioned attribute']
@@ -40,9 +39,8 @@ class SimpleRPC(baserpc.BaseRPC):
                 result.append((ret_value, parent.oid))
         return result
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_get_device_names_for_ip(self, ip_address, network_trees = None):
+    @helpers.ValidateSession()
+    def xmlrpc_get_device_names_for_ip(self, session, ip_address, network_trees = None):
         if not network_trees:
             network_trees = []
             vt = self.object_store.view_tree
@@ -54,7 +52,7 @@ class SimpleRPC(baserpc.BaseRPC):
                 network_trees = [network_trees]
             _network_trees = []
             for nt_oid in network_trees:
-                nt = self.object_store.getOID(nt_oid, user=self.user)
+                nt = self.object_store.getOID(nt_oid, user=session.user)
                 if nt.class_name == 'network tree':
                     _network_trees.append(nt)
             network_trees = _network_trees
@@ -66,18 +64,16 @@ class SimpleRPC(baserpc.BaseRPC):
                 network = None
             if network:
                 for device in network.listAssocRef(include=['device']):
-                    if not device.hasReadPermission(self.user):
+                    if not device.hasReadPermission(session.user):
                         continue
                     name = device.getAttribute('name')
                     if name:
                         ret.append(name.value)
         return ret
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_get_device_data(self, device_name):
-        session = self.session
-        searcher = self.object_store.view_tree.search('^%s$' % (device_name), attr_limit=['name'], include=['device'], user=self.user)
+    @helpers.ValidateSession()
+    def xmlrpc_get_device_data(self, session, device_name):
+        searcher = self.object_store.view_tree.search('^%s$' % (device_name), attr_limit=['name'], include=['device'], user=session.user)
         match = False
         for device in searcher:
             if device.getAttributeValue('name') == device_name:
@@ -85,7 +81,7 @@ class SimpleRPC(baserpc.BaseRPC):
                 break
         if not match:
             return False
-        data = self._getDevice(self.user, device)
+        data = self._getDevice(session.user, device)
         return data
 
     def _getDeviceRoot(self, device):
