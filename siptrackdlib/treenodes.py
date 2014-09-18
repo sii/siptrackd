@@ -136,6 +136,9 @@ class BaseNode(object):
     def __init__(self, oid, branch):
         self.oid = oid
         self.branch = branch
+        # Contains a list of all StorageValue instances used by the node.
+        # Updated by StorageValue.__init__.
+        self._storage_values = []
         self.object_store = self.branch.tree.ext_data
         self.searcher = self.object_store.searcher
         self.storage = self.object_store.storage
@@ -164,6 +167,7 @@ class BaseNode(object):
         self.searcher = None
         self.storage = None
         self.perm_cache = None
+        self._storage_values = None
 
     def addChildByID(self, user, class_id, *args, **kwargs):
         """Create a new child of type class_id.
