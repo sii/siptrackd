@@ -9,76 +9,67 @@ from siptrackd_twisted import baserpc
 class CounterRPC(baserpc.BaseRPC):
     node_type = 'counter'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid):
         """Create a new counter."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'counter')
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'counter')
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set(self, oid, value):
+    @helpers.ValidateSession()
+    def xmlrpc_set(self, session, oid, value):
         """Set a counters value."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         counter.set(value)
         return value
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_get(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_get(self, session, oid):
         """Get a counters value."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         return counter.get()
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_inc(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_inc(self, session, oid):
         """Increase a counters value."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         counter.inc()
         return counter.get()
 
 class CounterLoopRPC(baserpc.BaseRPC):
     node_type = 'counter loop'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, values):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, values):
         """Create a new counter."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'counter loop', values)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'counter loop', values)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set(self, oid, value):
+    @helpers.ValidateSession()
+    def xmlrpc_set(self, session, oid, value):
         """Set a counters value."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         counter.set(value)
         return value
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_get(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_get(self, session, oid):
         """Get a counters value."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         return counter.get()
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_inc(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_inc(self, session, oid):
         """Increase a counters value."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         counter.inc()
         return counter.get()
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_values(self, oid, values):
+    @helpers.ValidateSession()
+    def xmlrpc_set_values(self, session, oid, values):
         """Set a looping counters values."""
-        counter = self.getOID(oid)
+        counter = self.getOID(session, oid)
         counter.setValues(values)
         return True
 
