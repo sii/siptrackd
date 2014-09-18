@@ -12,7 +12,6 @@ class BaseRPC(xmlrpc.XMLRPC):
         xmlrpc.XMLRPC.__init__(self)
         self.object_store = object_store
         self.session_handler = session_handler
-        self.session = None
 
     def _get_view_tree(self):
         return self.object_store.view_tree
@@ -20,23 +19,21 @@ class BaseRPC(xmlrpc.XMLRPC):
         pass
     view_tree = property(_get_view_tree, _set_view_tree)
 
-    def getOID(self, oid):
-        return self.object_store.getOID(oid, self.node_type, user = self.user)
+    def getOID(self, session, oid):
+        return self.object_store.getOID(oid, self.node_type, user = session.user)
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, *args, **kwargs):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, *args, **kwargs):
         """Create a new node."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        node = parent.add(self.user, self.node_type, *args, **kwargs)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        node = parent.add(session.user, self.node_type, *args, **kwargs)
         return node.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_delete(self, oid, recursive = True):
+    @helpers.ValidateSession()
+    def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
-        node = self.getOID(oid)
-        node.delete(recursive, self.user)
+        node = self.getOID(session, oid)
+        node.delete(recursive, session.user)
         return True
 
     @defer.inlineCallbacks
