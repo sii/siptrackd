@@ -12,11 +12,10 @@ import siptrackd_twisted.errors
 class AttributeRPC(baserpc.BaseRPC):
     node_type = 'attribute'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, name, atype, value):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, name, atype, value):
         """Create a new attribute."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         # Binary data is converted into xmlrpclib.Binary objects. If this is
         # a binary attribute, make sure we received an xmlrpclib.Binary object
         # and extract the data.
@@ -25,14 +24,13 @@ class AttributeRPC(baserpc.BaseRPC):
                 value = str(value)
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
-        obj = parent.add(self.user, 'attribute', name, atype, value)
+        obj = parent.add(session.user, 'attribute', name, atype, value)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_value(self, oid, value):
+    @helpers.ValidateSession()
+    def xmlrpc_set_value(self, session, oid, value):
         """Set an existing attributes value."""
-        attribute = self.getOID(oid)
+        attribute = self.getOID(session, oid)
         # Binary data is converted into xmlrpclib.Binary objects. If this is
         # a binary attribute, make sure we received an xmlrpclib.Binary object
         # and extract the data.
@@ -47,11 +45,10 @@ class AttributeRPC(baserpc.BaseRPC):
 class VersionedAttributeRPC(baserpc.BaseRPC):
     node_type = 'versioned attribute'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, name, atype, max_versions, value = None):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, sid, parent_oid, name, atype, max_versions, value = None):
         """Create a new versioned attribute."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         # Binary data is converted into xmlrpclib.Binary objects. If this is
         # a binary attribute, make sure we received an xmlrpclib.Binary object
         # and extract the data.
@@ -60,14 +57,13 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
                 value = value.data
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
-        obj = parent.add(self.user, 'versioned attribute', name, atype, value, max_versions)
+        obj = parent.add(session.user, 'versioned attribute', name, atype, value, max_versions)
         return obj.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_value(self, oid, value):
+    @helpers.ValidateSession()
+    def xmlrpc_set_value(self, session, oid, value):
         """Set an existing attributes value."""
-        attribute = self.getOID(oid)
+        attribute = self.getOID(session, oid)
         # Binary data is converted into xmlrpclib.Binary objects. If this is
         # a binary attribute, make sure we received an xmlrpclib.Binary object
         # and extract the data.
@@ -79,11 +75,10 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
         attribute.value = value
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_max_versions(self, oid, max_versions):
+    @helpers.ValidateSession()
+    def xmlrpc_set_max_versions(self, session, oid, max_versions):
         """Set an existing attributes value."""
-        attribute = self.getOID(oid)
+        attribute = self.getOID(session, oid)
         attribute.max_versions = max_versions
         return True
 
