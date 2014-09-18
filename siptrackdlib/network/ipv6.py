@@ -47,7 +47,7 @@ class Network(treenodes.BaseNode):
         # If we were passed a string, convert it, otherwise assume
         # it's an Address object already.
         self.address = ipaddr.IPNetwork(self.address, version=6, mask_address=True)
-        self.storage.writeData(self.oid, 'netstring', str(self.address))
+        self.storageAction('write_data', {'name': 'netstring', 'value': str(self.address)})
 
         # Be really sure that this network is in the correct place.
         parent = find_network_parent(network_tree, self.address)
@@ -105,11 +105,7 @@ class Network(treenodes.BaseNode):
 
         Creates self.address from storage.
         """
-        if data:
-            netstring = data['netstring']
-        else:
-            netstring = self.storage.readData(self.oid, 'netstring')
-        self.address = ipaddr.IPNetwork(netstring)
+        self.address = ipaddr.IPNetwork(data['netstring'])
         self.searcher.load(self, 'network', unicode(self.address))
 
     def addressFromString(self, address):
@@ -272,10 +268,8 @@ class NetworkRange(treenodes.BaseNode):
         # it's a Range object already.
         if type(self.range) in [str, unicode]:
             self.range = self.rangeFromString(self.range)
-        self.storage.writeData(self.oid, 'start', 
-                self.range.start)
-        self.storage.writeData(self.oid, 'end', 
-                self.range.end)
+        self.storageAction('write_data', {'name': 'start', 'value': self.range.start})
+        self.storageAction('write_data', {'name': 'end', 'value': self.range.end})
 
         # Be really sure that this range is in the correct place.
         parent = find_range_parent(network_tree, self.range)
@@ -302,13 +296,7 @@ class NetworkRange(treenodes.BaseNode):
 
         Creates self.address from storage.
         """
-        if data:
-            start = data['start']
-            end = data['end']
-        else:
-            start = self.storage.readData(self.oid, 'start')
-            end = self.storage.readData(self.oid, 'end')
-        self.range = Range(start, end)
+        self.range = Range(data['start'], data['end'])
         self.address = self.range
 
     def prune(self, user = None):

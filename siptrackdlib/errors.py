@@ -48,3 +48,5 @@ class PermissionDenied(NonExistent):
 class InvalidNetworkAddress(SiptrackError):
     pass
 
+class MissingData(SiptrackError):
+    pass

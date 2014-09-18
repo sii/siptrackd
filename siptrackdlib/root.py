@@ -1,3 +1,5 @@
+from twisted.internet import defer
+
 from siptrackdlib import objecttree
 from siptrackdlib import treenodes
 from siptrackdlib import view
@@ -236,3 +238,27 @@ class ObjectStore(object):
             log.msg('Trigger %s raised unhandled exception: %s' % (event_trigger, str(e)))
         self.event_triggers_enabled = True
 
+    def commit(self, nodes):
+        for node in nodes:
+            if node._storage_actions:
+                actions = node._storage_actions
+                node._storage_actions = []
+                for action in actions:
+                    args = action['args']
+                    if action['action'] == 'create_node':
+                        parent_oid = ''
+                        parent = node.parent
+                        if parent:
+                            parent_oid = parent.oid
+                        self.storage.addOID(parent_oid, node.oid, node.class_id)
+                    elif action['action'] == 'remove_node':
+                        self.storage.removeOID(node.oid)
+                    elif action['action'] == 'relocate':
+                        self.storage.relocate(node.oid, node.branch.parent.oid)
+                    elif action['action'] == 'associate':
+                        self.storage.associate(node.oid, args['other'])
+                    elif action['action'] == 'disassociate':
+                        self.storage.disassociate(node.oid, args['other'])
+                    elif action['action'] == 'write_data':
+                        self.storage.writeData(node.oid, args['name'], args['value'])
+        return defer.succeed(True)

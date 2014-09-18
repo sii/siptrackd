@@ -244,10 +244,8 @@ class Network(treenodes.BaseNode):
         # it's an Address object already.
         if type(self.address) in [str, unicode]:
             self.address = self.addressFromString(self.address)
-        self.storage.writeData(self.oid, 'network',
-                self.address.network)
-        self.storage.writeData(self.oid, 'netmask',
-                self.address.netmask)
+        self.storageAction('write_data', {'name': 'network', 'value': self.address.network})
+        self.storageAction('write_data', {'name': 'netmask', 'value': self.address.netmask})
 
         # Be really sure that this network is in the correct place.
         parent = find_network_parent(network_tree, self.address)
@@ -302,13 +300,7 @@ class Network(treenodes.BaseNode):
 
         Creates self.address from storage.
         """
-        if data:
-            network = data['network']
-            netmask = data['netmask']
-        else:
-            network = self.storage.readData(self.oid, 'network')
-            netmask = self.storage.readData(self.oid, 'netmask')
-        self.address = Address(network, netmask, False, False)
+        self.address = Address(data['network'], data['netmask'], False, False)
         self.searcher.load(self, 'network', unicode(self.address))
 
     def addressFromString(self, address):
@@ -482,10 +474,8 @@ class NetworkRange(treenodes.BaseNode):
         # it's a Range object already.
         if type(self.range) in [str, unicode]:
             self.range = self.rangeFromString(self.range)
-        self.storage.writeData(self.oid, 'start', 
-                self.range.start)
-        self.storage.writeData(self.oid, 'end', 
-                self.range.end)
+        self.storageAction('write_data', {'name': 'start', 'value': self.range.start})
+        self.storageAction('write_data', {'name': 'end', 'value': self.range.end})
 
         # Be really sure that this range is in the correct place.
         parent = find_range_parent(network_tree, self.range)
@@ -512,13 +502,7 @@ class NetworkRange(treenodes.BaseNode):
 
         Creates self.address from storage.
         """
-        if data:
-            start = data['start']
-            end = data['end']
-        else:
-            start = self.storage.readData(self.oid, 'start')
-            end = self.storage.readData(self.oid, 'end')
-        self.range = Range(start, end)
+        self.range = Range(data['start'], data['end'])
         self.address = self.range
 
     def prune(self, user = None):

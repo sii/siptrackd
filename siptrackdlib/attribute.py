@@ -75,13 +75,9 @@ class Attribute(AttributeBase):
 
     def _created(self, user):
         super(Attribute, self)._created(user)
-        self.storage.startTransaction()
-        try:
-            self.name = self._name
-            self.atype = self._atype
-            self.value = self._value
-        finally:
-            self.storage.endTransaction()
+        self.name = self._name
+        self.atype = self._atype
+        self.value = self._value
 
     def _loaded(self, data = None):
         super(Attribute, self)._loaded(data)
@@ -104,43 +100,38 @@ class Attribute(AttributeBase):
 
     def _get_name(self):
         if not self._name:
-            self._name = self.storage.readData(self.oid, 'attr-name')
+            raise errors.MissingData('missing attribute name')
         return self._name
 
     def _set_name(self, val):
         self._name = val
-        self.storage.writeData(self.oid, 'attr-name', self._name)
+        self.storageAction('write_data', {'name': 'attr-name', 'value': self._name})
         self.setModified()
     name = property(_get_name, _set_name)
 
     def _get_value(self):
         if self._value is None:
-            self._value = self.storage.readData(self.oid, 'attr-value')
-            if self.atype == 'bool':
-                if self._value == 0:
-                    self._value = False
-                else:
-                    self._value = True
+            raise errors.MissingData('missing attribute value')
         return self._value
 
     def _set_value(self, val):
         if self._atype == 'text':
             if type(val) not in [unicode, str]:
                 raise errors.SiptrackError('attribute value doesn\'t match type')
-            self.storage.writeData(self.oid, 'attr-value', val)
+            self.storageAction('write_data', {'name': 'attr-value', 'value': val})
         elif self._atype == 'binary':
             if type(val) != str:
                 raise errors.SiptrackError('attribute value doesn\'t match type')
-            self.storage.writeData(self.oid, 'attr-value', val)
+            self.storageAction('write_data', {'name': 'attr-value', 'value': val})
         elif self._atype == 'int':
             if type(val) != int:
                 raise errors.SiptrackError('attribute value doesn\'t match type')
-            self.storage.writeData(self.oid, 'attr-value', val)
+            self.storageAction('write_data', {'name': 'attr-value', 'value': val})
         elif self._atype == 'bool':
             if val is True:
-                self.storage.writeData(self.oid, 'attr-value', 1)
+                self.storageAction('write_data', {'name': 'attr-value', 'value': 1})
             elif val is False:
-                self.storage.writeData(self.oid, 'attr-value', 0)
+                self.storageAction('write_data', {'name': 'attr-value', 'value': 0})
             else:
                 raise errors.SiptrackError('attribute value doesn\'t match type')
         else:
@@ -153,12 +144,12 @@ class Attribute(AttributeBase):
 
     def _get_atype(self):
         if not self._atype:
-            self._atype = self.storage.readData(self.oid, 'attr-type')
+            raise errors.MissingData('missing attribute value')
         return self._atype
 
     def _set_atype(self, val):
         self._atype = val
-        self.storage.writeData(self.oid, 'attr-type', self._atype)
+        self.storageAction('write_data', {'name': 'attr-type', 'value': self._atype})
         self.setModified()
     atype = property(_get_atype, _set_atype)
 

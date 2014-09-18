@@ -146,13 +146,12 @@ class NetworkTree(treenodes.BaseNode):
 
     def _get_protocol(self):
         if not self._protocol:
-            self._protocol = self.storage.readData(self.oid, 'network-protocol')
+            raise errors.MissingData('protocol has not been loaded yet')
         return self._protocol
 
     def _set_protocol(self, val):
         self._protocol = val
-        self.storage.writeData(self.oid, 'network-protocol',
-                self._protocol)
+        self.storageAction('write_data', {'name': 'network-protocol', 'value': self._protocol})
     protocol = property(_get_protocol, _set_protocol)
 
 # Add the objects in this module to the object registry.

@@ -5,7 +5,6 @@ class StorageValue(object):
     _write_none = False
 
     def __init__(self, node, name, value = None, validator = None):
-        self.storage = node.storage
         self.node = node
         self.node._storage_values.append(self)
         self.oid = node.oid
@@ -52,7 +51,7 @@ class StorageValue(object):
         if self.value is None and not self._write_none:
             return
         value = self._setValue(self.value)
-        self.storage.writeData(self.oid, self.name, value)
+        self.node.storageAction('write_data', {'name': self.name, 'value': value})
         self.node.setModified()
 
     def get(self):
@@ -63,7 +62,7 @@ class StorageValue(object):
         if not self._has_value:
             self._has_value = True
             # self.value is set to None if nothing exists in storage.
-            self.value = self.storage.readData(self.oid,
+            self.value = self.node.object_store.storage.readData(self.oid,
                     self.name)
             self.value = self._getValue(self.value)
         return self.value

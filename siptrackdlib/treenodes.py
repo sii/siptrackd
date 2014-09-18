@@ -139,9 +139,9 @@ class BaseNode(object):
         # Contains a list of all StorageValue instances used by the node.
         # Updated by StorageValue.__init__.
         self._storage_values = []
+        self._storage_actions = []
         self.object_store = self.branch.tree.ext_data
         self.searcher = self.object_store.searcher
-        self.storage = self.object_store.storage
         self.removed = False
         # Creation time.
         self.ctime = storagevalue.StorageValue(self, 'ctime', 0)
@@ -165,9 +165,12 @@ class BaseNode(object):
         self.branch = None
         self.object_store = None
         self.searcher = None
-        self.storage = None
         self.perm_cache = None
         self._storage_values = None
+        self._storage_actions = None
+
+    def storageAction(self, action, args = None):
+        self._storage_actions.append({'action': action, 'args': args})
 
     def addChildByID(self, user, class_id, *args, **kwargs):
         """Create a new child of type class_id.
@@ -183,7 +186,6 @@ class BaseNode(object):
             raise errors.PermissionDenied()
         child = object_registry.createObject(class_id, self.branch,
                 *args, **kwargs)
-        self.storage.addOID(self.oid, child.oid, class_id)
         try:
             # Called only for newly created objects.
             child._created(user)
@@ -212,6 +214,7 @@ class BaseNode(object):
         """
         self.ctime.set(int(time.time()))
         self.object_store.triggerEvent('node add', self)
+        self.storageAction('create_node')
 
     def _loaded(self, data = None):
         """Called when an existing object has just been loaded.
@@ -249,12 +252,11 @@ class BaseNode(object):
             reference.disassociate(self)
         for assoc in list(self.associations):
             self.disassociate(assoc)
-        self.storage.removeOID(self.oid)
         self.branch = None
         self.oid = None
-        self.storage = None
         self.removed = True
         self.setModified()
+        self.storageAction('remove_node')
 
     def _relocate(self):
         """Relocate (new parent) an object. Called from branch callbacks.
@@ -262,7 +264,7 @@ class BaseNode(object):
         Not for manual usage, should only be called by the branch callback
         when a branch is relocated.
         """
-        self.storage.relocate(self.oid, self.branch.parent.oid)
+        self.storageAction('relocate')
         self.setModified()
 
     def relocate(self, new_parent, user = None):
@@ -312,7 +314,7 @@ class BaseNode(object):
             raise errors.SiptrackError('objects already associated')
         if self is other:
             raise errors.SiptrackError('can\'t associate an object with itself')
-        self.storage.associate(self.oid, other.oid)
+        self.storageAction('associate', {'other': other.oid})
         self.branch.associate(other.branch)
         self.object_store.triggerEvent('node associate', self, other)
         self.setModified()
@@ -322,7 +324,7 @@ class BaseNode(object):
         """Remove an association to another object."""
         if not self.isAssociated(other):
             raise errors.SiptrackError('objects not associated')
-        self.storage.disassociate(self.oid, other.oid)
+        self.storageAction('disassociate', {'other': other.oid})
         self.branch.disassociate(other.branch)
         self.object_store.triggerEvent('node disassociate', self, other)
         self.setModified()
