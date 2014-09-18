@@ -62,53 +62,35 @@ def _check_exception(exc):
         log.msg(tbmsg)
         return errors.generic_error(exc.__str__())
 
-def validate_session(func):
-    """Session validation.
+class ValidateSession(object):
+    def __init__(self, error_handler = True, require_admin = False):
+        self.error_handler = error_handler
+        self.require_admin = require_admin
 
-    Wrapper to validate session id's for xmlrpc methods that require them
-    The session id must be the first argument to the method (apart from self).
-    The session itself (if validation occurs) is stored in self.session for
-    the duration of the method call.
-    """
-    def validate(*args, **kwargs):
-        if len(args) < 2:
-            raise errors.InvalidSessionError()
-        func_self = args[0]
-        session_id = args[1]
-        try:
-            func_self.session = func_self.session_handler.fetchSession(session_id)
-            func_self.session.accessed()
-            log.logger.session = func_self.session
-            args = (args[0],) + args[2:]
-            func_self.tree_user = func_self.session.user.user
-            func_self.instance_user = func_self.session.user
-            func_self.user = func_self.instance_user
+    def __call__(self, func):
+        def wrapped_f(*args, **kwargs):
+            if len(args) < 2:
+                raise errors.InvalidSessionError()
+            func_self = args[0]
+            session_id = args[1]
+            session = func_self.session_handler.fetchSession(session_id)
+            if self.require_admin:
+                if not session.user or not session.user.user or not \
+                        session.user.user.administrator:
+                    raise errors.PermissionDenied()
+            session.accessed()
+            args = (args[0], session) + args[2:]
 #            print func, args[1:], kwargs
             start = time.time()
-            ret = func(*args, **kwargs)
+            if self.error_handler:
+                try:
+                    ret = func(*args, **kwargs)
+                    if isinstance(ret, defer.Deferred):
+                        ret.addErrback(_eb_ret)
+                except Exception, e:
+                    ret = _check_exception(e)
+            else:
+                ret = func(*args, **kwargs)
 #            print 'ELAPSED:', func, time.time() - start
             return ret
-        finally:
-            func_self.session = None
-            log.logger.session = None
-            func_self.tree_user = None
-            func_self.instance_user = None
-            func_self.user = None
-    return validate
-
-def require_admin(func):
-    """Require administrator privileges."""
-    def validate(*args, **kwargs):
-        if len(args) < 1:
-            raise errors.PermissionDenied()
-        func_self = args[0]
-        if not hasattr(func_self, 'session'):
-            raise errors.PermissionDenied()
-        session = func_self.session
-        if not session.user or not session.user.user or not \
-                session.user.user.administrator:
-            raise errors.PermissionDenied()
-        return func(*args, **kwargs)
-    return validate
-require_administrator = require_admin
-
+        return wrapped_f
