@@ -10,91 +10,83 @@ from siptrackd_twisted import baserpc
 class PasswordTreeRPC(baserpc.BaseRPC):
     node_type = 'password tree'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid):
         """Create a new password tree."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'password tree')
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'password tree')
         return obj.oid
 
 class PasswordCategoryRPC(baserpc.BaseRPC):
     node_type = 'password category'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid):
         """Create a new password category."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        obj = parent.add(self.user, 'password category')
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'password category')
         return obj.oid
 
 class PasswordRPC(baserpc.BaseRPC):
     node_type = 'password'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, password, key_oid = ''):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, password, key_oid = ''):
         """Create a new password."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
         if len(key_oid) == 0:
             key = None
         else:
-            key = self.object_store.getOID(key_oid, user = self.user)
-        passwd = parent.add(self.user, 'password', password, key)
+            key = self.object_store.getOID(key_oid, user = session.user)
+        passwd = parent.add(session.user, 'password', password, key)
         return passwd.oid
 
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_password(self, oid, new_password):
+    @helpers.ValidateSession()
+    def xmlrpc_set_password(self, session, oid, new_password):
         """Change a Passwords password."""
-        password = self.getOID(oid)
-        password.setPassword(self.user, new_password)
+        password = self.getOID(session, oid)
+        password.setPassword(session.user, new_password)
         return True
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_set_password_key(self, oid, new_password_key_oid):
+    @helpers.ValidateSession()
+    def xmlrpc_set_password_key(self, session, oid, new_password_key_oid):
         """Change a Passwords password key."""
-        password = self.getOID(oid)
+        password = self.getOID(session, oid)
         new_password_key = None
         if new_password_key_oid:
-            new_password_key = self.object_store.getOID(new_password_key_oid, 'password key', self.user)
-        password.setPasswordKey(self.user, new_password_key)
+            new_password_key = self.object_store.getOID(new_password_key_oid, 'password key', session.user)
+        password.setPasswordKey(session.user, new_password_key)
         return True
 
 class PasswordKeyRPC(baserpc.BaseRPC):
     node_type = 'password key'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_add(self, parent_oid, key):
+    @helpers.ValidateSession()
+    def xmlrpc_add(self, session, parent_oid, key):
         """Create a new password key."""
-        parent = self.object_store.getOID(parent_oid, user = self.user)
-        pk = parent.add(self.user, 'password key', key)
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        pk = parent.add(session.user, 'password key', key)
         return pk.oid
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_change_key(self, oid, new_key):
+    @helpers.ValidateSession()
+    def xmlrpc_change_key(self, session, oid, new_key):
         """Change a password keys key."""
-        pk = self.getOID(oid)
+        pk = self.getOID(session, oid)
         pk.changeKey(new_key)
         return True
 
 class SubKeyRPC(baserpc.BaseRPC):
     node_type = 'subkey'
 
-    @helpers.error_handler
-    @helpers.validate_session
-    def xmlrpc_delete(self, oid):
+    @helpers.ValidateSession()
+    def xmlrpc_delete(self, session, oid):
         """Delete a subkey."""
-        subkey = self.object_store.getOID(oid, 'subkey', user = self.user)
+        subkey = self.object_store.getOID(oid, 'subkey', user = session.user)
         if self.session.user.user.administrator != True and \
                 self.session.user.user.oid != subkey.parent.oid:
             raise errors.PermissionDenied()
-        self.object_store.getOID(oid, user = self.user).delete(recursive = True)
+        self.object_store.getOID(oid, user = session.user).delete(recursive = True)
         return True
 
 def password_data_extractor(node, user):
