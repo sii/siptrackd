@@ -129,6 +129,7 @@ class BaseTemplate(treenodes.BaseNode):
                 rules.append(rule)
         retry_rules = []
         prev_retry_count = 0
+        updated = []
         while len(rules) > 0 or len(retry_rules) > 0:
             # If we've run out of rules, try again with the ones that
             # returned NotEnoughDataError.
@@ -145,12 +146,12 @@ class BaseTemplate(treenodes.BaseNode):
             if rule in skip_rules:
                 continue
             try:
-                rule.apply(node, overwrite, user, *arguments.get(rule.oid, []))
+                updated += rule.apply(node, overwrite, user, *arguments.get(rule.oid, []))
             except NotEnoughDataError:
                 # A fixed rule expansion didn't have enough data to continue.
                 # Retry it later.
                 retry_rules.append(rule)
-        return True
+        return updated
 
     def listRules(self):
         for rule in self.listChildren():
@@ -224,12 +225,15 @@ class BaseTemplateRule(treenodes.BaseNode):
         This method copies all attributes a rule has to the given node.
         Attributes that have an 'exclude' attribute are skipped.
         """
+        updated = []
         for attr in self.listChildren(include = ['attribute']):
             exclude = attr.getAttribute('exclude')
             # Skip attributes that have an 'exclude' attribute set to True
             if exclude is not None and exclude.value is True:
                 continue
-            apply_node.add(None, 'attribute', attr.name, attr.atype, attr.value)
+            node = apply_node.add(None, 'attribute', attr.name, attr.atype, attr.value)
+            updated.append(node)
+        return updated
 
     def removeAttributes(self, node, name):
         """Removes any attributes with name 'name' in the given node."""
@@ -238,8 +242,10 @@ class BaseTemplateRule(treenodes.BaseNode):
         for attr in node.listChildren(include = include):
             if attr.name == name:
                 attrs.append(attr)
+        updated = []
         for attr in attrs:
-            attr.remove(recursive = True)
+            updated += attr.remove(recursive = True)
+        return updated
 
 class TemplateRulePassword(BaseTemplateRule):
     class_id = 'TMPLRULEPASSWORD'
@@ -272,12 +278,13 @@ class TemplateRulePassword(BaseTemplateRule):
                 raise errors.SiptrackError('unable to use password key when trying to add password')
 
     def apply(self, node, overwrite, user, pwd = ''):
-        password = node.add(user, 'password', pwd, self.key.get())
+        updated = [node.add(user, 'password', pwd, self.key.get())]
         if self.username.get() is not None:
-            password.add(user, 'attribute', 'username', 'text', self.username.get())
+            updated += password.add(user, 'attribute', 'username', 'text', self.username.get())
         if self.description.get() is not None:
-            password.add(user, 'attribute', 'description', 'text',
+            updated += password.add(user, 'attribute', 'description', 'text',
                     self.description.get())
+        return updated
 
 class TemplateRuleAssignNetwork(BaseTemplateRule):
     class_id = 'TMPLRULEASSIGNNET'
@@ -293,9 +300,11 @@ class TemplateRuleAssignNetwork(BaseTemplateRule):
     def apply(self, node, overwrite, user):
         # Don't fail the whole template if we can't auto-assign a network.
         try:
-            node.autoAssignNetwork(user)
+            n, updated = node.autoAssignNetwork(user)
         except errors.SiptrackError:
-            pass
+            updated = []
+        return updated
+        
 
 class TemplateRuleSubdevice(BaseTemplateRule):
     class_id = 'TMPLRULESUBDEV'
@@ -331,18 +340,22 @@ class TemplateRuleSubdevice(BaseTemplateRule):
         if num_devices is None:
             num_devices = self.num_devices.get()
         tmpl = self.device_template.get()
+        updated = []
         if tmpl:
             tmpl.startSequence('subdevice')
             try:
                 for n in range(num_devices):
                     tmpl.setSequence('subdevice', self.sequence_offset.get() + n)
                     child = node.add(None, 'device')
-                    tmpl.apply(child, template_args, user = user)
+                    updated.append(child)
+                    updated += tmpl.apply(child, template_args, user = user)
             finally:
                 tmpl.stopSequence('subdevice')
         else:
             for n in range(num_devices):
                 child = node.add(None, 'device')
+                updated.append(child)
+        return updated
 
 class TemplateRuleText(BaseTemplateRule):
     """Plain text based on user input template rule."""
@@ -377,7 +390,7 @@ class TemplateRuleText(BaseTemplateRule):
             self.removeAttributes(node, self.attr_name.get())
         attr = node.add(None, 'versioned attribute', self.attr_name.get(),
                 'text', value, self.versions.get())
-        self._applyAttributes(attr)
+        return [attr] + self._applyAttributes(attr)
 
 class TemplateRuleFixed(BaseTemplateRule):
     """Template rule to add a fixed string, with or without variable expansion.
@@ -504,11 +517,14 @@ class TemplateRuleFixed(BaseTemplateRule):
         value = self.value.get()
         if self.variable_expansion.get() is True:
             value = self._expandValue(node, value)
+        updated = []
         if overwrite:
-            self.removeAttributes(node, self.attr_name.get())
+            updated += self.removeAttributes(node, self.attr_name.get())
         attr = node.add(None, 'versioned attribute', self.attr_name.get(),
                 'text', value, self.versions.get())
-        self._applyAttributes(attr)
+        updated.append(attr)
+        updated += self._applyAttributes(attr)
+        return updated
 
 class TemplateRuleRegmatch(BaseTemplateRule):
     class_id = 'TMPLRULEREGMATCH'
@@ -546,11 +562,14 @@ class TemplateRuleRegmatch(BaseTemplateRule):
             raise errors.SiptrackError('argument doesn\'t match rule regexp')
 
     def apply(self, node, overwrite, user, value = ''):
+        updated = []
         if overwrite:
-            self.removeAttributes(node, self.attr_name.get())
+            updated += self.removeAttributes(node, self.attr_name.get())
         attr = node.add(None, 'versioned attribute', self.attr_name.get(),
             'text', value, self.versions.get())
-        self._applyAttributes(attr)
+        updated.append(attr)
+        updated += self._applyAttributes(attr)
+        return updated
 
 class TemplateRuleBool(BaseTemplateRule):
     class_id = 'TMPLRULEBOOL'
@@ -591,11 +610,14 @@ class TemplateRuleBool(BaseTemplateRule):
     def apply(self, node, overwrite, user, value = None):
         if value is None:
             value = self.default_value.get()
+        updated = []
         if overwrite:
-            self.removeAttributes(node, self.attr_name.get())
+            updated += self.removeAttributes(node, self.attr_name.get())
         attr = node.add(None, 'versioned attribute', self.attr_name.get(), 'bool',
                 value, self.versions.get())
-        self._applyAttributes(attr)
+        updated.append(attr)
+        updated += self._applyAttributes(attr)
+        return updated
 
 class TemplateRuleInt(BaseTemplateRule):
     class_id = 'TMPLRULEINT'
@@ -636,11 +658,13 @@ class TemplateRuleInt(BaseTemplateRule):
     def apply(self, node, overwrite, user, value = None):
         if value is None:
             value = self.default_value.get()
+        updated = []
         if overwrite:
-            self.removeAttributes(node, self.attr_name.get())
+            updated += self.removeAttributes(node, self.attr_name.get())
         attr = node.add(None, 'versioned attribute', self.attr_name.get(), 'int',
                 value, self.versions.get())
-        self._applyAttributes(attr)
+        updated.append(attr)
+        updated += self._applyAttributes(attr)
 
 class TemplateRuleDeleteAttribute(BaseTemplateRule):
     class_id = 'TMPLRULEDELATTR'
@@ -666,7 +690,7 @@ class TemplateRuleDeleteAttribute(BaseTemplateRule):
         pass
 
     def apply(self, node, overwrite, user):
-        self.removeAttributes(node, self.attr_name.get())
+        return self.removeAttributes(node, self.attr_name.get())
 
 class TemplateRuleFlushNodes(BaseTemplateRule):
     class_id = 'TMPLRULEFLUSHNODES'
@@ -701,9 +725,11 @@ class TemplateRuleFlushNodes(BaseTemplateRule):
         pass
 
     def apply(self, node, overwrite, user):
+        updated = []
         for node in list(node.listChildren(include = self.include.get(),
             exclude = self.exclude.get())):
-            node.remove(recursive = True)
+            updated += node.remove(recursive = True)
+        return updated
 
 class TemplateRuleFlushAssociations(BaseTemplateRule):
     class_id = 'TMPLRULEFLUSHASSOC'
@@ -739,9 +765,10 @@ class TemplateRuleFlushAssociations(BaseTemplateRule):
 
     def apply(self, node, overwrite, user):
         include = ['attribute', 'versioned attribute']
-        for assoc in list(node.listAssocRef(include = self.include.get(),
-            exclude = self.exclude.get())):
+        updated = [node]
+        for assoc in list(node.listAssocRef(include = self.include.get(), exclude = self.exclude.get())):
             node.disAssocRef(assoc)
+            updated.append(assoc)
 
 o = object_registry.registerClass(DeviceTemplate)
 o.registerChild(attribute.Attribute)
