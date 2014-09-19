@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 
 from siptrackdlib import network
 import siptrackdlib.errors
@@ -16,6 +17,7 @@ class NetworkRangeRPC(baserpc.BaseRPC):
 class NetworkIPV4RPC(baserpc.BaseRPC):
     node_type = 'ipv4 network'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, address):
         """Create a new network."""
@@ -24,9 +26,11 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
             parent = parent.getParent('network tree')
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
-        obj = parent.addNetwork(session.user, address)
-        return obj.oid
+        obj, modified = parent.addNetwork(session.user, address)
+        self.object_store.commit(modified)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_prune(self, session, oid):
         """Prune a network.
@@ -34,7 +38,11 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
         The network will be removed if it has no associations/references.
         """
         node = self.getOID(session, oid)
-        return node.prune()
+        updated = node.prune()
+        if updated:
+            self.object_store.commit(updated)
+            defer.returnValue(True)
+        defer.returnValue(False)
 
     @helpers.ValidateSession()
     def xmlrpc_find_missing_networks(self, session, oid):
@@ -48,6 +56,7 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
 class NetworkIPV6RPC(baserpc.BaseRPC):
     node_type = 'ipv6 network'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, address):
         """Create a new network."""
@@ -56,9 +65,11 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
             parent = parent.getParent('network tree')
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
-        obj = parent.addNetwork(session.user, address)
-        return obj.oid
+        obj, modified = parent.addNetwork(session.user, address)
+        self.object_store.commit(modified)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_prune(self, session, oid):
         """Prune a network.
@@ -66,7 +77,11 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
         The network will be removed if it has no associations/references.
         """
         node = self.getOID(session, oid)
-        return node.prune()
+        updated = node.prune()
+        if updated:
+            self.object_store.commit(updated)
+            defer.returnValue(True)
+        defer.returnValue(False)
 
     @helpers.ValidateSession()
     def xmlrpc_find_missing_networks(self, session, oid):
@@ -80,6 +95,7 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
 class NetworkRangeIPV4RPC(baserpc.BaseRPC):
     node_type = 'ipv4 network range'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, range):
         """Create a new network range."""
@@ -89,8 +105,10 @@ class NetworkRangeIPV4RPC(baserpc.BaseRPC):
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
         obj = parent.addRange(session.user, range)
-        return obj.oid
+        yield obj.commit()
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_prune(self, session, oid):
         """Prune a network range.
@@ -98,11 +116,16 @@ class NetworkRangeIPV4RPC(baserpc.BaseRPC):
         The range will be removed if it has no associations/references.
         """
         node = self.getOID(session, oid)
-        return node.prune()
+        updated = node.prune()
+        if updated:
+            self.object_store.commit(updated)
+            defer.returnValue(True)
+        defer.returnValue(False)
 
 class NetworkRangeIPV6RPC(baserpc.BaseRPC):
     node_type = 'ipv6 network range'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, range):
         """Create a new network range."""
@@ -112,8 +135,10 @@ class NetworkRangeIPV6RPC(baserpc.BaseRPC):
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
         obj = parent.addRange(session.user, range)
-        return obj.oid
+        yield obj.commit()
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_prune(self, session, oid):
         """Prune a network range.
@@ -121,17 +146,23 @@ class NetworkRangeIPV6RPC(baserpc.BaseRPC):
         The range will be removed if it has no associations/references.
         """
         node = self.getOID(session, oid)
-        return node.prune()
+        updated = node.prune()
+        if updated:
+            self.object_store.commit(updated)
+            defer.returnValue(True)
+        defer.returnValue(False)
 
 class NetworkTreeRPC(baserpc.BaseRPC):
     node_type = 'network tree'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, protocol):
         """Create a new network tree."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'network tree', protocol)
-        return obj.oid
+        yield obj.commit()
+        defer.returnValue(obj.oid)
 
     @helpers.ValidateSession()
     def xmlrpc_network_exists(self, session, oid, address):
