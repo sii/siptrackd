@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 
 from siptrackdlib import config
 
@@ -12,6 +13,7 @@ class ConfigRPC(baserpc.BaseRPC):
 class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
     node_type = 'config network autoassign'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, network_tree_oid, range_start,
             range_end):
@@ -19,8 +21,10 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
         nt = self.object_store.getOID(network_tree_oid, 'network tree', user = session.user)
         obj = parent.add(session.user, 'config network autoassign', nt, range_start,
                 range_end)
-        return obj.oid
+        self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_values(self, session, oid, network_tree_oid, range_start,
             range_end):
@@ -29,28 +33,35 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
         node.network_tree.set(nt)
         node.range_start.set(range_start)
         node.range_end.set(range_end)
-        return True
+        self.object_store.commit(node)
+        defer.returnValue(True)
 
 class ConfigValueRPC(baserpc.BaseRPC):
     node_type = 'config value'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, name, value):
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'config value', name, value)
-        return obj.oid
+        self.object_store.commit(obj)
+        defer.returnValue(obj.id)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_name(self, session, oid, name):
         node = self.getOID(session, oid)
         node.name.set(name)
-        return True
+        self.object_store.commit(node)
+        defer.returnValue(True)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_value(self, session, oid, value):
         node = self.getOID(session, oid)
         node.value.set(value)
-        return True
+        self.object_store.commit(node)
+        defer.returnValue(True)
 
 def config_network_autoassign_data_extractor(node, user):
     oid = ''
