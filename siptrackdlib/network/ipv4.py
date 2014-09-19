@@ -544,7 +544,7 @@ def get_free_network(tree, start, end, user=None):
         if not tree.networkExists(cur):
             return tree.addNetwork(user, cur)
         cur = cur.inc()
-    return None
+    return None, None
 
 #def get_free_network(base, start, end, user=None):
 #    """Create a host (/32) subnet which is available under us.

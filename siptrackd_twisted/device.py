@@ -35,8 +35,8 @@ class DeviceRPC(baserpc.BaseRPC):
     def xmlrpc_autoassign_network(self, session, oid):
         """Autoassign a network to a device."""
         device = self.getOID(session, oid)
-        network = device.autoAssignNetwork(session.user)
-        yield self.object_store.commit(network)
+        network, modified = device.autoAssignNetwork(session.user)
+        yield self.object_store.commit(modified)
         defer.returnValue(network.oid)
 
 class DeviceTreeRPC(baserpc.BaseRPC):

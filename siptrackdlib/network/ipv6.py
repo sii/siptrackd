@@ -342,7 +342,7 @@ def get_free_network(tree, start, end, user=None):
         if not tree.networkExists(cur):
             return tree.addNetwork(user, cur)
         cur = cur + 1
-    return None
+    return None, None
 
 def network_sorter(x, y):
     """Simple network sorting function."""

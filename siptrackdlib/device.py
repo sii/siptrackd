@@ -53,14 +53,14 @@ class Device(treenodes.BaseNode):
         for config_net in config.get_config_network_autoassign(self):
             if not config_net.network_tree.get():
                 continue
-            free = config_net.network_tree.get().getFreeNetwork(
+            free, modified = config_net.network_tree.get().getFreeNetwork(
                     config_net.range_start.get(),
                     config_net.range_end.get(),
                     user)
             if not free:
                 continue
             self.associate(free)
-            return free
+            return free, modified
         raise errors.SiptrackError('device unable to autoassign, no available networks')
 
 # Add the objects in this module to the object registry.

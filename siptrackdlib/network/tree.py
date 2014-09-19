@@ -47,12 +47,14 @@ class NetworkTree(treenodes.BaseNode):
         """
         if self.protocol == 'ipv4':
             parent = ipv4.find_network_parent(self, address)
-            return parent.add(user, 'ipv4 network', address)
+            node = parent.add(user, 'ipv4 network', address)
         elif self.protocol == 'ipv6':
             parent = ipv6.find_network_parent(self, address)
-            return parent.add(user, 'ipv6 network', address)
+            node = parent.add(user, 'ipv6 network', address)
         else:
             raise errors.SiptrackError('confused, invalid protocol in network tree?')
+        modified = [node] + node.listChildren()
+        return node, modified
 
     def addRange(self, user, range):
         """Create a range appropriate for the trees protocol.
