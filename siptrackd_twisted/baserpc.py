@@ -22,19 +22,23 @@ class BaseRPC(xmlrpc.XMLRPC):
     def getOID(self, session, oid):
         return self.object_store.getOID(oid, self.node_type, user = session.user)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, *args, **kwargs):
         """Create a new node."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         node = parent.add(session.user, self.node_type, *args, **kwargs)
-        return node.oid
+        yield node.commit()
+        defer.returnValue(node.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)
-        node.delete(recursive, session.user)
-        return True
+        updated = node.delete(recursive, session.user)
+        yield self.object_store.commit(updated)
+        defer.returnValue(True)
 
     @defer.inlineCallbacks
     def _cbRender(self, result, request, responseFailed=None): 
