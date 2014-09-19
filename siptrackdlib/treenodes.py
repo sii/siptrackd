@@ -152,6 +152,9 @@ class BaseNode(object):
     def __str__(self):
         return '<%s:%s>' % (self.class_name, self.oid)
 
+    def commit(self):
+        return self.object_store.commit(self)
+
     def _treeFree(self):
         """Free a BaseNode.
 

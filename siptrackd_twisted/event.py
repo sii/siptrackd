@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 
 from siptrackdlib import event
 
@@ -12,12 +13,14 @@ class CommandQueueRPC(baserpc.BaseRPC):
 class CommandRPC(baserpc.BaseRPC):
     node_type = 'command'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_freetext(self, session, oid, value):
         """Set value."""
         node = self.getOID(session, oid)
         node._freetext.set(value)
-        return value
+        yield node.commit()
+        defer.returnValue(value)
 
 class EventRPC(baserpc.BaseRPC):
     pass
@@ -31,12 +34,14 @@ class EventTriggerRuleRPC(baserpc.BaseRPC):
 class EventTriggerRulePythonRPC(baserpc.BaseRPC):
     node_type = 'event trigger rule python'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_code(self, session, oid, value):
         """Set value."""
         node = self.getOID(session, oid)
         node._code.set(value)
-        return value
+        yield node.commit()
+        defer.returnValue(value)
 
 def command_queue_data_extractor(node, user):
     return []
