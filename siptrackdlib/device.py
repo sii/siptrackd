@@ -42,10 +42,11 @@ class Device(treenodes.BaseNode):
         We override the default remove method due to prune_networks.
         """
         associations = list(self.associations)
-        self.branch.remove(recursive, user)
+        updated = self.branch.remove(recursive, user)
         if prune_networks:
             for association in associations:
-                association.prune(user)
+                updated += association.prune(user)
+        return updated
     delete = remove
 
     def autoAssignNetwork(self, user):

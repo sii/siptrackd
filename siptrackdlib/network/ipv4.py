@@ -333,9 +333,8 @@ class Network(treenodes.BaseNode):
             raise errors.PermissionDenied()
         if len(list(self.references)) == 0 and \
                 len(list(self.associations)) == 0:
-            self.remove(recursive = False)
-            return True
-        return False
+            return self.remove(recursive = False)
+        return []
 
     def iterMissingNetworks(self):
         """Return non-existent subnets.
@@ -512,9 +511,8 @@ class NetworkRange(treenodes.BaseNode):
         """
         if len(list(self.references)) == 0 and \
                 len(list(self.associations)) == 0:
-            self.remove(recursive = True)
-            return True
-        return False
+            return self.remove(recursive = True)
+        return []
 
     def rangeFromString(self, address):
         return range_from_string(address)
