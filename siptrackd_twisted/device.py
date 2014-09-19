@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 
 from siptrackdlib import device
 
@@ -10,47 +11,57 @@ from siptrackd_twisted import baserpc
 class DeviceRPC(baserpc.BaseRPC):
     node_type = 'device'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid):
         """Create a new device."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         device = parent.add(session.user, 'device')
-        return device.oid
+        yield self.object_store.commit(device)
+        defer.returnValue(device.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_delete(self, session, oid, prune_networks = True):
         """Delete a device."""
         device = self.getOID(session, oid)
-        device.delete(recursive = True, user = session.user,
+        updated = device.delete(recursive = True, user = session.user,
                 prune_networks = prune_networks)
-        return True
+        yield self.object_store.commit(updated)
+        defer.returnValue(True)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_autoassign_network(self, session, oid):
         """Autoassign a network to a device."""
         device = self.getOID(session, oid)
         network = device.autoAssignNetwork(session.user)
-        return network.oid
+        yield self.object_store.commit(network)
+        defer.returnValue(network.oid)
 
 class DeviceTreeRPC(baserpc.BaseRPC):
     node_type = 'device tree'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid):
         """Create a new device tree."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'device tree')
-        return obj.oid
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
 class DeviceCategoryRPC(baserpc.BaseRPC):
     node_type = 'device category'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid):
         """Create a new device category."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'device category')
-        return obj.oid
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
 gatherer.node_data_registry.register(device.Device,
         gatherer.no_data_extractor)
