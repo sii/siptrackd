@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 
 from siptrackdlib import counter
 
@@ -9,49 +10,60 @@ from siptrackd_twisted import baserpc
 class CounterRPC(baserpc.BaseRPC):
     node_type = 'counter'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid):
         """Create a new counter."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'counter')
-        return obj.oid
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set(self, session, oid, value):
         """Set a counters value."""
         counter = self.getOID(session, oid)
         counter.set(value)
-        return value
+        yield self.object_store.commit(counter)
+        defer.returnValue(value)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_get(self, session, oid):
         """Get a counters value."""
         counter = self.getOID(session, oid)
         return counter.get()
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_inc(self, session, oid):
         """Increase a counters value."""
         counter = self.getOID(session, oid)
         counter.inc()
-        return counter.get()
+        yield self.object_store.commit(counter)
+        defer.returnValue(counter.get())
 
 class CounterLoopRPC(baserpc.BaseRPC):
     node_type = 'counter loop'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, values):
         """Create a new counter."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'counter loop', values)
-        return obj.oid
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set(self, session, oid, value):
         """Set a counters value."""
         counter = self.getOID(session, oid)
         counter.set(value)
-        return value
+        yield self.object_store.commit(counter)
+        defer.returnValue(value)
 
     @helpers.ValidateSession()
     def xmlrpc_get(self, session, oid):
@@ -59,19 +71,23 @@ class CounterLoopRPC(baserpc.BaseRPC):
         counter = self.getOID(session, oid)
         return counter.get()
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_inc(self, session, oid):
         """Increase a counters value."""
         counter = self.getOID(session, oid)
         counter.inc()
-        return counter.get()
+        yield self.object_store.commit(counter)
+        defer.returnValue(counter.get())
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_values(self, session, oid, values):
         """Set a looping counters values."""
         counter = self.getOID(session, oid)
         counter.setValues(values)
-        return True
+        yield self.object_store.commit(counter)
+        defer.returnValue(True)
 
 def counter_data_extractor(node, user):
     return [node.get()]
