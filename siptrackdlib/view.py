@@ -1,3 +1,5 @@
+from twisted.internet import defer
+
 from siptrackdlib.objectregistry import object_registry
 from siptrackdlib import treenodes
 from siptrackdlib import container
@@ -25,6 +27,7 @@ class ViewTree(treenodes.BaseNode):
         super(ViewTree, self).__init__(oid, branch)
         self._user_manager = storagevalue.StorageNode(self, 'user_manager')
 
+    @defer.inlineCallbacks
     def _initUserManager(self):
         """Create a new user manager if no user manager is currently set.
         
@@ -35,10 +38,11 @@ class ViewTree(treenodes.BaseNode):
         """
         if self._user_manager.get() is None:
             user_manager = self.add(None, 'user manager local')
-            user_manager.add(None, 'attribute', 'name', 'text', 'default user manager')
+            attr = user_manager.add(None, 'attribute', 'name', 'text', 'default user manager')
             self._user_manager.set(user_manager)
-            user_manager.add(None, 'user local', username = 'admin',
-                    password = 'admin', administrator = True)
+            user = user_manager.add(None, 'user local', username = 'admin',
+                                    password = 'admin', administrator = True)
+            yield self.object_store.commit([user_manager, attr, user])
 
     def setActiveUserManager(self, user_manager):
         if type(user_manager) not in [user.UserManagerLocal, user.UserManagerLDAP, user.UserManagerActiveDirectory]:

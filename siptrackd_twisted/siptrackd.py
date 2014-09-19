@@ -310,14 +310,23 @@ def object_store_reloader(session_handler, object_store, reload_interval):
         log.msg('Reload complete')
     reactor.callLater(reload_interval, object_store_reloader, session_handler, object_store, reload_interval)
 
+@defer.inlineCallbacks
+def siptrackd_twisted_init(object_store, application):
+    log.msg('Loading object store, this might take a while')
+    yield object_store.init()
+    log.msg('Object store loading complete')
+    log.msg('Starting rpc listener')
+    app.startApplication(application, False)
+    log.msg('Running')
+
 def run_siptrackd_twisted(listen_port, ssl_port,
         ssl_private_key, ssl_certificate, storage, reload_interval,
         searcher):
-    log.msg('Creating object store, this might take a while.')
+    log.msg('Creating object store')
     object_store = siptrackdlib.ObjectStore(storage, searcher = searcher)
-    log.msg('Finished loading object store.')
     session_handler = sessions.SessionHandler()
 
+    log.msg('Creating rpc interface')
     siptrackd_rpc = SiptrackdRPC(object_store, session_handler)
     xmlrpc.addIntrospection(siptrackd_rpc)
 
@@ -497,6 +506,8 @@ def run_siptrackd_twisted(listen_port, ssl_port,
     root_service.setServiceParent(application)
     app.startApplication(application, False)
 
+    reactor.callWhenRunning(siptrackd_twisted_init, object_store, application)
+
     if reload_interval:
         reactor.callLater(reload_interval, object_store_reloader, session_handler, object_store, reload_interval)
 
@@ -506,26 +517,39 @@ def run_siptrackd_twisted(listen_port, ssl_port,
     return 0
 
 def list_user_managers(storage):
-    print  'Creating object store, this might take a while.'
-    object_store = siptrackdlib.ObjectStore(storage)
-    for um in object_store.view_tree.listChildren(include = \
-            ['user manager local', 'user manager ldap']):
-        active = False
-        if um is object_store.view_tree.user_manager:
-            active = True
-        s = 'name: %s, oid: %s, active: %s' % (
-                um.getAttributeValue('name', 'NONE'),
-                um.oid,
-                active)
-        print s
+    @defer.inlineCallbacks
+    def run():
+        print  'Creating object store, this might take a while.'
+        object_store = siptrackdlib.ObjectStore(storage)
+        yield object_store.init()
+        for um in object_store.view_tree.listChildren(include = \
+                ['user manager local', 'user manager ldap']):
+            active = False
+            if um is object_store.view_tree.user_manager:
+                active = True
+            s = 'name: %s, oid: %s, active: %s' % (
+                    um.getAttributeValue('name', 'NONE'),
+                    um.oid,
+                    active)
+            print s
+        reactor.stop()
+    reactor.callWhenRunning(run)
+    reactor.start()
 
 def reset_user_manager(storage):
-    print  'Creating object store, this might take a while.'
-    object_store = siptrackdlib.ObjectStore(storage)
-    um = object_store.view_tree.add(None, 'user manager local')
-    um.add(None, 'user local', 'admin', 'admin', True)
-    object_store.view_tree.setActiveUserManager(um)
-    print 'New user manager oid: %s' % (um.oid)
+    @defer.inlineCallbacks
+    def run():
+        print  'Creating object store, this might take a while.'
+        object_store = siptrackdlib.ObjectStore(storage)
+        yield object_store.init()
+        um = object_store.view_tree.add(None, 'user manager local')
+        u = um.add(None, 'user local', 'admin', 'admin', True)
+        object_store.view_tree.setActiveUserManager(um)
+        yield object_store.commit([object_store.view_tree, um, u])
+        print 'New user manager oid: %s' % (um.oid)
+        reactor.stop()
+    reactor.callWhenRunning(run)
+    reactor.start()
 
 def daemonize():
     if os.fork():

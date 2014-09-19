@@ -24,9 +24,13 @@ class ObjectStore(object):
         self.searcher = searcher
         if not searcher:
             self.searcher = search.MemorySearch()
-        self._checkStorage()
+
+    @defer.inlineCallbacks
+    def init(self):
+        yield self._checkStorage()
+        self._last_oid = yield self._getLastOID()
         self.call_loaded = True
-        self.oid_class_mapping = self._loadOIDClassMapping()
+        self.oid_class_mapping = yield self._loadOIDClassMapping()
         self.object_tree = objecttree.Tree(tree_callbacks, self)
         self.object_registry = object_registry
         if not self.storage.OIDExists('0'):
@@ -40,17 +44,18 @@ class ObjectStore(object):
                     view.ViewTree.class_id)
             self.oid_class_mapping[self.view_tree.oid] = view.ViewTree.class_id
         else:
-            self._populateObjectTree()
+            yield self._populateObjectTree()
             self.view_tree = self.getOID('0')
         object_registry.next_oid = self._getNextOID()
         if preload:
-            self.preLoad()
+            yield self.preLoad()
         self.event_triggers_enabled = True
         self.event_triggers = list(self.view_tree.listChildren(include = ['event trigger']))
-        self.view_tree._initUserManager()
+        yield self.view_tree._initUserManager()
         if self.searcher:
             self.searcher._buildIndex(self)
 
+    @defer.inlineCallbacks
     def reload(self):
         """Reload an object store.
 
@@ -59,13 +64,13 @@ class ObjectStore(object):
         """
         self.object_tree.free()
         self.storage.reload()
-        self.oid_class_mapping = self._loadOIDClassMapping()
+        self.oid_class_mapping = yield self._loadOIDClassMapping()
         self.object_tree = objecttree.Tree(tree_callbacks, self)
-        self._populateObjectTree()
+        yield self._populateObjectTree()
         self.view_tree = self.getOID('0')
         if self.preload:
-            self.preLoad()
-        self.view_tree._initUserManager()
+            yield self.preLoad()
+        yield self.view_tree._initUserManager()
         treenodes.perm_cache.clear()
 
     def _checkStorage(self):
@@ -75,6 +80,7 @@ class ObjectStore(object):
             error = 'Wanted storage version %s, got version %s, try upgrading.' % (
                     STORE_VERSION, current_version)
             raise errors.InvalidStorageVersion(error)
+        defer.succeed(True)
 
     def preLoad(self):
         """Preload node data.
@@ -123,6 +129,7 @@ class ObjectStore(object):
                 self.call_loaded = False
         finally:
             self.call_loaded = True
+        return defer.succeed(True)
 
     def _loadOIDClassMapping(self):
         """Return a mapping (dict) of oid -> class_id.
@@ -135,7 +142,20 @@ class ObjectStore(object):
         mapping = {}
         for oid, class_id in self.storage.listOIDClasses():
             mapping[oid] = class_id
-        return mapping
+        return defer.succeed(mapping)
+
+    def _getLastOID(self):
+        """Return the latest allocated OID.
+
+        Checks the object id's allocated in storage and returns the
+        highest.
+        """
+        last_oid = 0
+        for parent_oid, oid in self.storage.listOIDs():
+            oid = int(oid)
+            if oid > last_oid:
+                last_oid = oid
+        return defer.succeed(last_oid)
 
     def _getNextOID(self):
         """Return the next available object id.
@@ -143,13 +163,8 @@ class ObjectStore(object):
         Checks the object id's allocated in storage and returns the
         next available one.
         """
-        last_oid = 0
-        for parent_oid, oid in self.storage.listOIDs():
-            oid = int(oid)
-            if oid > last_oid:
-                last_oid = oid
-        last_oid += 1
-        return last_oid
+        self._last_oid += 1
+        return self._last_oid
 
     def _populateObjectTree(self):
         """Populate the object tree with oids.
@@ -162,6 +177,7 @@ class ObjectStore(object):
         self.object_tree.loadBranches(oids)
         associations = self.storage.listAssociations()
         self.object_tree.loadAssociations(associations)
+        return defer.succeed(True)
 
     def getOID(self, oid, valid_types = None, user = None):
         """Return the object with the given object id.
