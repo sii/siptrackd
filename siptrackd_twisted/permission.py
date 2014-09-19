@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 
 from siptrackdlib import permission
 
@@ -9,6 +10,7 @@ from siptrackd_twisted import baserpc
 class PermissionRPC(baserpc.BaseRPC):
     node_type = 'permission'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
     def xmlrpc_add(self, session, parent_oid, read_access, write_access, users, groups,
             all_users, recursive):
@@ -18,14 +20,17 @@ class PermissionRPC(baserpc.BaseRPC):
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'permission', read_access, write_access,
                 users, groups, all_users, recursive)
-        return obj.oid
+        yield obj.commit()
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)
-        node.delete(recursive)
-        return True
+        updated = node.delete(recursive)
+        yield self.object_store.commit(updated)
+        defer.returnValue(True)
 
 def permission_data_extractor(node, user):
     users = [user.oid for user in node.users.get()]
