@@ -237,7 +237,7 @@ class BaseNode(object):
         Callbacks from the objecttree branches being removed will call
         _remove for each object being removed.
         """
-        self.branch.remove(recursive, user)
+        return self.branch.remove(recursive, user)
     delete = remove
 
     def _remove(self, user):

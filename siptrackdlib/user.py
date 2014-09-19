@@ -5,6 +5,8 @@ try:
 except ImportError:
     _have_ldap = False
 
+from twisted.internet import defer
+
 from siptrackdlib.objectregistry import object_registry
 from siptrackdlib import treenodes
 from siptrackdlib import attribute
@@ -219,8 +221,6 @@ class UserManagerLDAP(treenodes.BaseNode):
         for user in self.listChildren(include = ['user ldap']):
             if user._username.get() == username:
                 return user
-#        user = self.add(None, 'user ldap', username)
-#        return user
         return None
 
     def _listAllLDAPUsers(self, ldap_con, base_dn):
@@ -288,6 +288,7 @@ class UserManagerLDAP(treenodes.BaseNode):
                 users_uid.append(user_uid)
         return users_uid
 
+    @defer.inlineCallbacks
     def syncUsers(self, purge_missing_users = False):
         """Create UserLDAP objects based on the users in the ldap server.
 
@@ -306,13 +307,16 @@ class UserManagerLDAP(treenodes.BaseNode):
             ldap_con.unbind()
         local_users = list(self.listChildren(include = ['user ldap']))
         local_usernames = [user._username.get() for user in local_users]
+        updated = []
         for ldap_user in ldap_users:
             if ldap_user not in local_usernames:
-                self.add(None, 'user ldap', ldap_user, False)
+                user = self.add(None, 'user ldap', ldap_user, False)
+                updated.append(user)
         if purge_missing_users:
             for local_user in local_users:
                 if local_user._username.get() not in ldap_users:
-                    local_user.remove(recursive = True)
+                    updated += local_user.remove(recursive = True)
+        yield self.object_store.commit(updated)
 
     def setConnectionType(self, connection_type):
         if type(connection_type) not in [unicode, str]:
@@ -459,8 +463,6 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
             if user._username.get() == username:
                 return user
         return None
-#        user = self.add(None, 'user active directory', username)
-#        return user
 
     def _validSiptrackUsers(self, ldap_con, base_dn, valid_groups):
         """Return a list of users from an ldap server that are permitted to login.
@@ -480,6 +482,7 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
                 users_uid.append(user_uid)
         return users_uid
 
+    @defer.inlineCallbacks
     def syncUsers(self, bind_username, bind_password,
                         purge_missing_users = False):
         """Create UserActiveDirectory objects based on the users in the ldap server.
@@ -501,27 +504,32 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
             if valid_group_names:
                 ldap_groups = self._getLDAPGroups(ldap_con, self._base_dn.get(), valid_group_names)
             ldap_users = self._getLDAPUsers(ldap_con, self._base_dn.get(), ldap_groups)
-            self._syncUsers(ldap_users, purge_missing_users)
-            self._syncGroups(ldap_groups, ldap_users, purge_missing_users)
+            yield self._syncUsers(ldap_users, purge_missing_users)
+            yield self._syncGroups(ldap_groups, ldap_users, purge_missing_users)
         finally:
             ldap_con.unbind()
 
+    @defer.inlineCallbacks
     def _syncUsers(self, ldap_users, purge_missing):
         local_users = list(self.listChildren(include = ['user active directory']))
         local_users_by_name = {}
         for local_user in local_users:
             local_users_by_name[local_user._username.get()] = local_user
         ldap_users_by_id = {}
+        updated = []
         for ldap_user in ldap_users.itervalues():
             ldap_users_by_id[ldap_user['id']] = ldap_user
             local_user = local_users_by_name.get(ldap_user['id'], None)
             if not local_user:
                 local_user = self.add(None, 'user active directory', ldap_user['id'], False)
+                updated.append(local_user)
             ldap_user['local_user'] = local_user
         if purge_missing:
             for local_user in local_users:
                 if local_user._username.get() not in ldap_users_by_id:
                     local_user.remove(recursive = True)
+                    updated.append(local_user)
+        yield self.object_store.commit(updated)
 
     def _getLDAPGroups(self, ldap_con, base_dn, valid_group_names):
         """Return all valid LDAP groups."""
@@ -589,6 +597,7 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
             valid_users[dn] = user
         return valid_users
 
+    @defer.inlineCallbacks
     def _syncGroups(self, ldap_groups, ldap_users, purge_missing):
         if ldap_groups is None:
             ldap_groups = {}
@@ -596,19 +605,22 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         local_groups_by_dn = {}
         for group in local_groups:
             local_groups_by_dn[group.getAttributeValue('dn')] = group
+        updated = []
         for ldap_group in ldap_groups.itervalues():
             local_group = local_groups_by_dn.get(ldap_group['dn'])
             if not local_group:
                 local_group = self.add(None, 'user group active directory', [])
-                local_group.add(None, 'attribute', 'dn', 'text', ldap_group['dn'])
-                local_group.add(None, 'attribute', 'name', 'text', ldap_group['cn'])
+                a1 = local_group.add(None, 'attribute', 'dn', 'text', ldap_group['dn'])
+                a2 = local_group.add(None, 'attribute', 'name', 'text', ldap_group['cn'])
+                updated += [local_group, a1, a2]
             ldap_group['local_group'] = local_group
         if purge_missing:
             for local_group in local_groups:
                 if local_group.getAttributeValue('dn') not in ldap_groups:
-                    local_group.remove(recursive = True)
+                    updated + = local_group.remove(recursive = True)
         for ldap_group in ldap_groups.itervalues():
             self._syncGroupUsers(ldap_group, ldap_users)
+        yield self.object_store.commit(updated)
 
     def _syncGroupUsers(self, ldap_group, ldap_users):
         new_users = []

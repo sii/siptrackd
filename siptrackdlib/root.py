@@ -255,6 +255,8 @@ class ObjectStore(object):
         self.event_triggers_enabled = True
 
     def commit(self, nodes):
+        if type(nodes) not in [list, tuple]:
+            nodes = [nodes]
         for node in nodes:
             if node._storage_actions:
                 actions = node._storage_actions

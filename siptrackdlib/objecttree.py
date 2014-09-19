@@ -143,19 +143,23 @@ class Branch(object):
         self._ext_data = None
 
     def _removeRecursive(self, callback_data):
+        affected_extdata = []
         for branch in list(traverse_tree_reverse(self, include_root = True)):
-            branch._removeSingle(callback_data)
+            affected_extdata += branch._removeSingle(callback_data)
+        return affected_extdata
 
     def _removeSingle(self, callback_data):
         """Removes a single branch from the tree.
 
         Child branches will be moved to the parent branch.
         """
+        affected_extdata = [self.ext_data]
         self.tree.remove_callback(self, callback_data)
         self.tree.removedBranch(self.oid)
         branches = list(self.branches)
         for branch in branches:
             branch.relocate(self.parent)
+            affected_extdata.append(branch.ext_data)
         self.branches = None
         self.parent.branches.remove(self)
         self.parent = None
@@ -170,6 +174,7 @@ class Branch(object):
         self.tree = None
         self.oid = None
         self.ext_data = None
+        return affected_extdata
 
     def remove(self, recursive, callback_data):
         """Remove a branch.
@@ -178,9 +183,10 @@ class Branch(object):
         otherwise they will be moved to the parent branch.
         """
         if recursive:
-            self._removeRecursive(callback_data)
+            ret = self._removeRecursive(callback_data)
         else:
-            self._removeSingle(callback_data)
+            ret = self._removeSingle(callback_data)
+        return ret
 
     def relocate(self, new_parent):
         """Relocate a branch (give it a new parent)."""
