@@ -1,4 +1,5 @@
 from twisted.web import xmlrpc
+from twisted.internet import defer
 import xmlrpclib
 
 from siptrackdlib import attribute
@@ -12,6 +13,7 @@ import siptrackd_twisted.errors
 class AttributeRPC(baserpc.BaseRPC):
     node_type = 'attribute'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, session, parent_oid, name, atype, value):
         """Create a new attribute."""
@@ -25,8 +27,10 @@ class AttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         obj = parent.add(session.user, 'attribute', name, atype, value)
-        return obj.oid
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_value(self, session, oid, value):
         """Set an existing attributes value."""
@@ -40,11 +44,13 @@ class AttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         attribute.value = value
-        return True
+        yield self.object_store.commit(attribute)
+        defer.returnValue(True)
 
 class VersionedAttributeRPC(baserpc.BaseRPC):
     node_type = 'versioned attribute'
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_add(self, sid, parent_oid, name, atype, max_versions, value = None):
         """Create a new versioned attribute."""
@@ -58,8 +64,10 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         obj = parent.add(session.user, 'versioned attribute', name, atype, value, max_versions)
-        return obj.oid
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_value(self, session, oid, value):
         """Set an existing attributes value."""
@@ -73,14 +81,17 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         attribute.value = value
-        return True
+        yield self.object_store.commit(attribute)
+        defer.returnValue(True)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_set_max_versions(self, session, oid, max_versions):
         """Set an existing attributes value."""
         attribute = self.getOID(session, oid)
         attribute.max_versions = max_versions
-        return True
+        yield self.object_store.commit(attribute)
+        defer.returnValue(True)
 
 def attribute_data_extractor(node, user):
     value = node.value
