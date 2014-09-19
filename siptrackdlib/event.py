@@ -20,7 +20,7 @@ class CommandQueue(treenodes.BaseNode):
         super(CommandQueue, self).__init__(oid, branch)
 
     def createCommand(self, freetext):
-        self.add(None, 'command', freetext)
+        return self.add(None, 'command', freetext)
 
 class Command(treenodes.BaseNode):
     """A command queue command.
