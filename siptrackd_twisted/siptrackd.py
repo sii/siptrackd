@@ -67,17 +67,20 @@ class SiptrackdRPC(baserpc.BaseRPC):
     If no specific data is to be returned, return True if everything worked
     out or an xmlrpclib Fault if things went wrong.
     """
+    @defer.inlineCallbacks
     @helpers.error_handler
     def xmlrpc_login(self, username, password):
         """Start a new session."""
-        user = self.view_tree.user_manager.login(username, password)
+        user, updated = self.view_tree.user_manager.login(username, password)
+        if updated:
+            yield self.object_store.commit(updated)
         if not user:
             log.msg('Invalid login for %s' % (username))
             raise errors.InvalidLoginError()
         log.msg('Valid login for %s' % (username))
         session = self.session_handler.startSession()
         session.user = user
-        return session.id
+        defer.returnValue(session.id)
     xmlrpc_login.signature = []
     xmlrpc_login.help = 'Start a new session, returns a session id.'
 

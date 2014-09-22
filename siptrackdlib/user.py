@@ -45,9 +45,9 @@ class UserManagerLocal(treenodes.BaseNode):
         for user in self.listChildren(include = ['user local']):
             if user._username.get() == username:
                 if user.authenticate(password):
-                    user._userLoggedIn(password)
-                    return UserInstance(user, password)
-        return None
+                    updated = user._userLoggedIn(password)
+                    return UserInstance(user, password), updated
+        return None, []
 
 class UserManagerLDAP(treenodes.BaseNode):
     """A manager for LDAP user accounts."""
@@ -198,6 +198,7 @@ class UserManagerLDAP(treenodes.BaseNode):
         correct.
         Returns a UserInstance of the login was valid otherwise None.
         """
+        updated = []
         local_user = self._getUser(username)
         if not local_user:
             return None
@@ -210,8 +211,8 @@ class UserManagerLDAP(treenodes.BaseNode):
         if self._authenticate(ldap_server, self._base_dn.get(),
                 username, password, self._valid_groups.get()):
             user = UserInstance(local_user, password)
-            local_user._userLoggedIn(password)
-        return user
+            updated = local_user._userLoggedIn(password)
+        return user, updated
 
     def _getUser(self, username):
         """Return a UserLDAP user matching the username.
@@ -439,6 +440,7 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         correct.
         Returns a UserInstance of the login was valid otherwise None.
         """
+        updated = []
         local_user = self._getUser(username)
         if not local_user:
             return None
@@ -451,8 +453,8 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         if self._authenticate(ldap_server, self._base_dn.get(),
                 username, password, self._valid_groups.get()):
             user = UserInstance(local_user, password)
-            local_user._userLoggedIn(password)
-        return user
+            updated = local_user._userLoggedIn(password)
+        return user, updated
 
     def _getUser(self, username):
         """Return a UserLDAP user matching the username.
@@ -656,22 +658,31 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
 class UserCommon(object):
     def resetPasswordDependencies(self, new_password):
         """Reset everything that depends on the users password."""
+        updated = []
         for subkey in list(self.listChildren(include = ['subkey'])):
             subkey.delete(recursive = True)
+            updated.append(subkey)
         pk = self.resetPasswordKey(new_password)
-        self.connectPasswordKey(pk, new_password, new_password)
-        pk = self.resetPublicKey(new_password)
-        self.resetPendingSubKeys()
+        updated.append(pk)
+        updated += self.connectPasswordKey(pk, new_password, new_password)
+        pk, _u = self.resetPublicKey(new_password)
+        updated += _u
+        updated += self.resetPendingSubKeys()
+        return updated
 
     def updatePasswordDependencies(self, old_password, new_password):
+        updated = []
         for subkey in list(self.listChildren(include = ['subkey'])):
             subkey.changePassword(old_password, new_password)
+            updated.append(subkey)
         pk = self.getPasswordKey()
         if pk:
             pk.changePassword(old_password, new_password)
+            updated.append(pk)
         else:
-            self.resetPasswordKey(new_password)
-        self.resetPendingSubKeys()
+            _, self.resetPasswordKey(new_password)
+        updated += self.resetPendingSubKeys()
+        return updated
 
     def getPasswordKey(self):
         for pk in self.listChildren(include = ['password key']):
@@ -680,13 +691,15 @@ class UserCommon(object):
         return None
 
     def resetPasswordKey(self, password):
+        updated = []
         pk = self.getPasswordKey()
         if pk:
-            pk.delete(recursive = True)
+            updated += pk.delete(recursive = True)
         pk = self.add(None, 'password key', password)
-        pk.add(None, 'attribute', 'default', 'bool', True)
-        self.resetPublicKey(password)
-        return pk
+        attr = pk.add(None, 'attribute', 'default', 'bool', True)
+        _, _u = self.resetPublicKey(password)
+        updated += [pk, attr] + _u
+        return pk, updated
 
     def getPublicKey(self):
         for pk in self.listChildren(include = ['public key']):
@@ -695,26 +708,34 @@ class UserCommon(object):
         return None
 
     def resetPublicKey(self, password):
+        updated = []
         pk = self.getPublicKey()
         if pk:
-            pk.delete(recursive = True)
+            updated += pk.delete(recursive = True)
         pk = self.add(None, 'public key', self.getPasswordKey(), password)
-        pk.add(None, 'attribute', 'default', 'bool', True)
-        return pk
+        attr = pk.add(None, 'attribute', 'default', 'bool', True)
+        updated += [pk, attr]
+        return pk, updated
 
     def runPendingSubKeys(self, password):
+        updated = []
         for psk in list(self.listChildren(include = ['pending subkey'])):
+            updated.append(psk)
             # Don't pass on errors if this fails, it would abort the login.
             try:
-                psk.connectPasswordKey(self, password, remove_self = False)
+                updated += psk.connectPasswordKey(self, password, remove_self = False)
             except:
                 pass
             finally:
                 psk.remove(recursive = True)
+        return updated
 
     def resetPendingSubKeys(self):
+        updated = []
         for psk in list(self.listChildren(include = ['pending subkey'])):
             psk.remove(recursive=True)
+            updated.append(psk)
+        return updated
 
     def passwordKeyIsConnected(self, password_key, include_pending):
         include = ['subkey']
@@ -734,28 +755,33 @@ class UserCommon(object):
         The password key must be unlocked for this call to work.
         """
         if self.passwordKeyIsConnected(password_key, include_pending=True):
-            return
+            return []
         if not password_key.isValidPassword(pk_password):
             raise errors.SiptrackError('invalid password key password')
         if user_password is not False:
             if not self.authenticate(user_password):
                 raise errors.SiptrackError('invalid user password when connecting password key')
-            self.add(None, 'subkey', password_key, user_password, pk_password)
+            k = self.add(None, 'subkey', password_key, user_password, pk_password)
+            updated = [k + k._updated_create]
         else: 
             pk = self.getPublicKey()
             if not pk:
                 raise errors.SiptrackError('No public key found for user, the public key will be created the first time the user logs in to siptrack.')
-            self.add(None, 'pending subkey', password_key, pk_password, pk)
+            k = self.add(None, 'pending subkey', password_key, pk_password, pk)
+            updated = [k + k._updated_create]
+        return updated
 
     def _userInit(self, password):
         """Stuff to do when a user has logged in and it's password is availble."""
+        updated = []
         # Create the users password key if it doesn't exist.
         if not self.getPasswordKey():
-            self.resetPasswordKey(password)
+            updated += self.resetPasswordKey(password)
         if not self.getPublicKey():
-            self.resetPublicKey(password)
-        self.runPendingSubKeys(password)
-        return True
+            pk, _u = self.resetPublicKey(password)
+            updated += _u
+        updated += self.runPendingSubKeys(password)
+        return updated
 
 class UserLocal(treenodes.BaseNode, UserCommon):
     """A user account."""
@@ -816,8 +842,9 @@ class UserLocal(treenodes.BaseNode, UserCommon):
             raise errors.SiptrackError('invalid password in User.setPassword')
         if not self.authenticate(old_password):
             raise errors.SiptrackError('invalid password in User.setPassword')
-        self.updatePasswordDependencies(old_password, new_password)
+        updated = self.updatePasswordDependencies(old_password, new_password) + [self]
         self._setPassword(new_password)
+        return updated
 
     def resetPassword(self, new_password):
         """Reset a users password.
@@ -827,8 +854,9 @@ class UserLocal(treenodes.BaseNode, UserCommon):
         """
         if type(new_password) not in [unicode, str]:
             raise errors.SiptrackError('invalid password in User.setPassword')
-        self.resetPasswordDependencies(new_password)
+        updated = self.resetPasswordDependencies(new_password) + [self]
         self._setPassword(new_password)
+        return updated
 
     def authenticate(self, password):
         if type(password) not in [unicode, str]:
@@ -838,7 +866,7 @@ class UserLocal(treenodes.BaseNode, UserCommon):
         return False
 
     def _userLoggedIn(self, password):
-        self._userInit(password)
+        return self._userInit(password)
 
     def _get_administrator(self):
         return self._administrator.get()
@@ -898,8 +926,9 @@ class UserLDAP(treenodes.BaseNode, UserCommon):
             raise errors.SiptrackError('invalid password in User.setPassword')
         if self._password_hash.get() != None and self._encryptPassword(old_password) != self._password_hash.get():
             raise errors.SiptrackError('invalid old password')
-        self.updatePasswordDependencies(old_password, new_password)
+        updated = self.updatePasswordDependencies(old_password, new_password) + [self]
         self._setPassword(new_password)
+        return updated
 
     def authenticate(self, password):
         if type(password) not in [unicode, str]:
@@ -921,8 +950,9 @@ class UserLDAP(treenodes.BaseNode, UserCommon):
         """
         if type(new_password) not in [unicode, str]:
             raise errors.SiptrackError('invalid password in User.setPassword')
-        self.resetPasswordDependencies(new_password)
+        updated = self.resetPasswordDependencies(new_password) + [self]
         self._setPassword(new_password)
+        return updated
 
     def _userLoggedIn(self, password):
         # Store the hash for this (correct) password.
@@ -932,7 +962,9 @@ class UserLDAP(treenodes.BaseNode, UserCommon):
 #            self.resetPendingSubKeys()
 #            self.resetPublicKey()
 #            self._setPassword(password)
-        self._userInit(password)
+        
+        updated = self._userInit(password) + [self]
+        return updated
 
     def _get_administrator(self):
         return self._administrator.get()

@@ -366,6 +366,7 @@ class SubKey(treenodes.BaseNode):
                 pk_password = self.sk_password)
         self.sk_password = None
         self.pk_password = None
+        self._updated_create = [int_password_key, self._int_password]
 
     def _loaded(self, data = None):
         """Load data from storage."""
@@ -517,9 +518,10 @@ class PendingSubKey(treenodes.BaseNode):
         public_key = self._public_key.get()
         pk_password = self._pk_password.get()
         pk_password = public_key.decrypt(pk_password, user_password, user)
-        user.add(None, 'subkey', password_key, user_password, pk_password)
+        updated = [user.add(None, 'subkey', password_key, user_password, pk_password)]
         if remove_self:
-            self.remove(recursive=True)
+            updated += self.remove(recursive=True)
+        return updated
 
     def _get_password_key(self):
         return self._password_key.get()
