@@ -125,6 +125,7 @@ class SiptrackdRPC(baserpc.BaseRPC):
         return True
     xmlrpc_location_exists = xmlrpc_oid_exists
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_move_oid(self, session, oid, new_parent_oid):
         """Move an oid to a new parent."""
@@ -135,7 +136,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
             new_parent = self.object_store.getOID(new_parent_oid,
                     user = session.user)
         obj.relocate(new_parent, user = session.user)
-        return True
+        yield obj.commit()
+        defer.returnValue(True)
     xmlrpc_relocate = xmlrpc_move_oid
 
     @helpers.ValidateSession()
@@ -161,12 +163,12 @@ class SiptrackdRPC(baserpc.BaseRPC):
         build_iter = listcreator.iterBuild(nodes, max_depth, include_parents,
                 include_associations, include_references)
         iter_id = session.data_iterators.add(build_iter)
-        return session.data_iterators.threadGetData(iter_id)
+        return session.data_iterators.getData(iter_id)
 
     @helpers.ValidateSession()
     def xmlrpc_iter_fetch_next(self, session, iter_id):
         """Fetch data from a oid (and it's children)."""
-        return session.data_iterators.threadGetData(iter_id)
+        return session.data_iterators.getData(iter_id)
 
     @helpers.ValidateSession()
     def xmlrpc_iter_quicksearch(self, session, search_pattern, attr_limit = [],
@@ -188,11 +190,11 @@ class SiptrackdRPC(baserpc.BaseRPC):
         build_iter = listcreator.iterSearch(searcher, include_data, include_parents,
                 include_associations, include_references)
         iter_id = session.data_iterators.add(build_iter)
-        return session.data_iterators.threadGetData(iter_id)
+        return session.data_iterators.getData(iter_id)
 
     @helpers.ValidateSession()
     def xmlrpc_iter_quicksearch_next(self, session, iter_id):
-        return session.data_iterators.threadGetData(iter_id)
+        return session.data_iterators.getData(iter_id)
 
     @helpers.ValidateSession()
     def xmlrpc_iter_search(self, session, oid, search_pattern, attr_limit = [],
@@ -209,27 +211,31 @@ class SiptrackdRPC(baserpc.BaseRPC):
         build_iter = listcreator.iterSearch(searcher, include_data, include_parents,
                 include_associations, include_references)
         iter_id = session.data_iterators.add(build_iter)
-        return session.data_iterators.threadGetData(iter_id)
+        return session.data_iterators.getData(iter_id)
 
     @helpers.ValidateSession()
     def xmlrpc_iter_search_next(self, session, iter_id):
-        return session.data_iterators.threadGetData(iter_id)
+        return session.data_iterators.getData(iter_id)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_associate(self, session, oid_1, oid_2):
         """Create an association between two objects."""
         obj_1 = self.object_store.getOID(oid_1, user = session.user)
         obj_2 = self.object_store.getOID(oid_2, user = session.user)
         obj_1.associate(obj_2)
-        return True
+        yield self.object_store.commit([obj_1, obj_2])
+        defer.returnValue(True)
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession()
     def xmlrpc_disassociate(self, session, oid_1, oid_2):
         """Remove an association between two objects."""
         obj_1 = self.object_store.getOID(oid_1, user = session.user)
         obj_2 = self.object_store.getOID(oid_2, user = session.user)
         obj_1.disassociate(obj_2)
-        return True
+        yield self.object_store.commit([obj_1, obj_2])
+        defer.returnValue(True)
 
     @helpers.ValidateSession()
     def xmlrpc_is_associated(self, session, oid_1, oid_2):
@@ -283,11 +289,12 @@ class SiptrackdRPC(baserpc.BaseRPC):
         node.logPermissionCache(user)
         return True
 
+    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
     def xmlrpc_reload_objectstore(self, session):
         log.msg('Reloading object store by command')
         try:
-            self.object_store.reload()
+            yield self.object_store.reload()
             self.session_handler.killAllSessions()
         except Exception, e:
             log.msg('Reload failed: %s' % (e))
@@ -295,12 +302,13 @@ class SiptrackdRPC(baserpc.BaseRPC):
             log.msg(tbmsg)
         else:
             log.msg('Reload complete')
-        return True
+        defer.returnValue(True)
 
+@defer.inlineCallbacks
 def object_store_reloader(session_handler, object_store, reload_interval):
     log.msg('Reloading object store by interval')
     try:
-        object_store.reload()
+        yield object_store.reload()
         session_handler.killAllSessions()
     except Exception, e:
         log.msg('Reload failed: %s' % (e))
