@@ -280,10 +280,10 @@ class TemplateRulePassword(BaseTemplateRule):
     def apply(self, node, overwrite, user, pwd = ''):
         updated = [node.add(user, 'password', pwd, self.key.get())]
         if self.username.get() is not None:
-            updated += password.add(user, 'attribute', 'username', 'text', self.username.get())
+            updated += [password.add(user, 'attribute', 'username', 'text', self.username.get())]
         if self.description.get() is not None:
-            updated += password.add(user, 'attribute', 'description', 'text',
-                    self.description.get())
+            updated += [password.add(user, 'attribute', 'description', 'text',
+                    self.description.get())]
         return updated
 
 class TemplateRuleAssignNetwork(BaseTemplateRule):
@@ -665,6 +665,7 @@ class TemplateRuleInt(BaseTemplateRule):
                 value, self.versions.get())
         updated.append(attr)
         updated += self._applyAttributes(attr)
+        return updated
 
 class TemplateRuleDeleteAttribute(BaseTemplateRule):
     class_id = 'TMPLRULEDELATTR'
