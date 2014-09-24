@@ -145,6 +145,7 @@ class BaseTemplate(treenodes.BaseNode):
             rule = rules.pop(0)
             if rule in skip_rules:
                 continue
+            print 'RUNNING RULE', rule
             try:
                 updated += rule.apply(node, overwrite, user, *arguments.get(rule.oid, []))
             except NotEnoughDataError:
@@ -770,6 +771,7 @@ class TemplateRuleFlushAssociations(BaseTemplateRule):
         for assoc in list(node.listAssocRef(include = self.include.get(), exclude = self.exclude.get())):
             node.disAssocRef(assoc)
             updated.append(assoc)
+        return updated
 
 o = object_registry.registerClass(DeviceTemplate)
 o.registerChild(attribute.Attribute)
