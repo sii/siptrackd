@@ -279,7 +279,8 @@ class TemplateRulePassword(BaseTemplateRule):
                 raise errors.SiptrackError('unable to use password key when trying to add password')
 
     def apply(self, node, overwrite, user, pwd = ''):
-        updated = [node.add(user, 'password', pwd, self.key.get())]
+        password = node.add(user, 'password', pwd, self.key.get())
+        updated = [password]
         if self.username.get() is not None:
             updated += [password.add(user, 'attribute', 'username', 'text', self.username.get())]
         if self.description.get() is not None:
