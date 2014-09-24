@@ -776,7 +776,8 @@ class UserCommon(object):
         updated = []
         # Create the users password key if it doesn't exist.
         if not self.getPasswordKey():
-            updated += self.resetPasswordKey(password)
+            pk, _u = self.resetPasswordKey(password)
+            updated += _u
         if not self.getPublicKey():
             pk, _u = self.resetPublicKey(password)
             updated += _u
