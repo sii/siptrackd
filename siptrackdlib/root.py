@@ -28,7 +28,6 @@ class ObjectStore(object):
     @defer.inlineCallbacks
     def init(self):
         yield self._checkStorage()
-        self._last_oid = yield self._getLastOID()
         self.call_loaded = True
         self.oid_class_mapping = yield self._loadOIDClassMapping()
         self.object_tree = objecttree.Tree(tree_callbacks, self)
@@ -40,14 +39,18 @@ class ObjectStore(object):
             object_registry.next_oid = 0
             self.view_tree = object_registry.createObject(
                     view.ViewTree.class_id, self.object_tree)
-            self.storage.addOID('ROOT', self.view_tree.oid,
-                    view.ViewTree.class_id)
+            # This is usally done from <treenode>._created callback, but that
+            # method is never called when creating the vt node this way.
+            self.view_tree.storageAction('create_node')
+            yield self.view_tree.commit()
+#            self.storage.addOID('ROOT', self.view_tree.oid,
+#                    view.ViewTree.class_id)
             self.oid_class_mapping[self.view_tree.oid] = view.ViewTree.class_id
         else:
             yield self._populateObjectTree()
             self.view_tree = self.getOID('0')
-        object_registry.next_oid = self._getNextOID()
-        if preload:
+        object_registry.next_oid = yield self._getNextOID()
+        if self.preload:
             yield self.preLoad()
         self.event_triggers_enabled = True
         self.event_triggers = list(self.view_tree.listChildren(include = ['event trigger']))
@@ -143,28 +146,20 @@ class ObjectStore(object):
         for oid, class_id in self.storage.listOIDClasses():
             mapping[oid] = class_id
         return defer.succeed(mapping)
-
-    def _getLastOID(self):
-        """Return the latest allocated OID.
-
-        Checks the object id's allocated in storage and returns the
-        highest.
-        """
-        last_oid = 0
-        for parent_oid, oid in self.storage.listOIDs():
-            oid = int(oid)
-            if oid > last_oid:
-                last_oid = oid
-        return defer.succeed(last_oid)
-
+    
     def _getNextOID(self):
         """Return the next available object id.
 
         Checks the object id's allocated in storage and returns the
         next available one.
         """
-        self._last_oid += 1
-        return self._last_oid
+        last_oid = 0
+        for parent_oid, oid in self.storage.listOIDs():
+            oid = int(oid)
+            if oid > last_oid:
+                last_oid = oid
+        last_oid += 1
+        return defer.succeed(last_oid)
 
     def _populateObjectTree(self):
         """Populate the object tree with oids.
@@ -255,6 +250,7 @@ class ObjectStore(object):
         self.event_triggers_enabled = True
 
     def commit(self, nodes):
+        print 'COOOOOOMIT', nodes
         if type(nodes) not in [list, tuple]:
             nodes = [nodes]
         for node in nodes:
@@ -262,13 +258,15 @@ class ObjectStore(object):
                 actions = node._storage_actions
                 node._storage_actions = []
                 for action in actions:
-                    args = action['args']
+                    print 'AAAAAA', node, action
+                    args = action.get('args')
                     if action['action'] == 'create_node':
-                        parent_oid = ''
+                        parent_oid = 'ROOT'
                         parent = node.parent
                         if parent:
                             parent_oid = parent.oid
                         self.storage.addOID(parent_oid, node.oid, node.class_id)
+                        print 'ADD NODE', parent_oid, node.oid, node.class_id
                     elif action['action'] == 'remove_node':
                         self.storage.removeOID(node.oid)
                     elif action['action'] == 'relocate':

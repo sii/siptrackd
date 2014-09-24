@@ -42,7 +42,7 @@ class ViewTree(treenodes.BaseNode):
             self._user_manager.set(user_manager)
             user = user_manager.add(None, 'user local', username = 'admin',
                                     password = 'admin', administrator = True)
-            yield self.object_store.commit([user_manager, attr, user])
+            yield self.object_store.commit([self, user_manager, attr, user])
 
     def setActiveUserManager(self, user_manager):
         if type(user_manager) not in [user.UserManagerLocal, user.UserManagerLDAP, user.UserManagerActiveDirectory]:

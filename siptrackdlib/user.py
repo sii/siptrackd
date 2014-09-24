@@ -619,7 +619,7 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         if purge_missing:
             for local_group in local_groups:
                 if local_group.getAttributeValue('dn') not in ldap_groups:
-                    updated + = local_group.remove(recursive = True)
+                    updated += local_group.remove(recursive = True)
         for ldap_group in ldap_groups.itervalues():
             self._syncGroupUsers(ldap_group, ldap_users)
         yield self.object_store.commit(updated)
