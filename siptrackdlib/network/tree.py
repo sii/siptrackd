@@ -5,6 +5,7 @@ from siptrackdlib import template
 from siptrackdlib import config
 from siptrackdlib import permission
 from siptrackdlib import errors
+from siptrackdlib import storagevalue
 from siptrackdlib.network import ipv4
 from siptrackdlib.network import ipv6
 
@@ -16,13 +17,18 @@ class NetworkTree(treenodes.BaseNode):
 
     def __init__(self, oid, branch, protocol = None):
         super(NetworkTree, self).__init__(oid, branch)
-        self._protocol = protocol
+        self._protocol = storagevalue.StorageValue(self, 'network-protocol', protocol)
 
     def _created(self, user):
         super(NetworkTree, self)._created(user)
-        if self._protocol not in valid_protocols:
+        if self._protocol.get() not in valid_protocols:
             raise errors.SiptrackError('unknown network protocol')
-        self.protocol = self._protocol
+        self._protocol.commit()
+
+    def _loaded(self, data = None):
+        super(NetworkTree, self)._loaded(data)
+        if data != None:
+            self._protocol.preload(data)
 
     def getFreeNetwork(self, range_start, range_end, user):
         """Find a free network somewhere between range_start and range_end
@@ -147,13 +153,10 @@ class NetworkTree(treenodes.BaseNode):
             raise errors.SiptrackError('confused, invalid protocol in network tree?')
 
     def _get_protocol(self):
-        if not self._protocol:
-            raise errors.MissingData('protocol has not been loaded yet')
-        return self._protocol
+        return self._protocol.get()
 
     def _set_protocol(self, val):
-        self._protocol = val
-        self.storageAction('write_data', {'name': 'network-protocol', 'value': self._protocol})
+        self._protocol.set(val)
     protocol = property(_get_protocol, _set_protocol)
 
 # Add the objects in this module to the object registry.
