@@ -36,7 +36,8 @@ class ViewTree(treenodes.BaseNode):
         and bad.
         Also creates a default admin user account with password admin.
         """
-        if self._user_manager.get() is None:
+        um = yield defer.maybeDeferred(self._user_manager.get)
+        if um is None:
             user_manager = self.add(None, 'user manager local')
             attr = user_manager.add(None, 'attribute', 'name', 'text', 'default user manager')
             self._user_manager.set(user_manager)
