@@ -21,6 +21,11 @@ class Counter(treenodes.BaseNode):
         super(Counter, self)._created(user)
         self._value.set(0)
 
+    def _loaded(self, data = None):
+        super(Counter, self)._loaded(data)
+        if data != None:
+            self._value.preload(data)
+
     def inc(self):
         """Increment the counter by 1."""
         self._value.set(self._value.get() + 1)
