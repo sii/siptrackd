@@ -1,3 +1,5 @@
+from twisted.internet import defer
+
 from siptrackdlib import errors
 
 class StorageValue(object):
@@ -61,9 +63,16 @@ class StorageValue(object):
         if not self._has_value:
             self._has_value = True
             # self.value is set to None if nothing exists in storage.
-            self.value = self.node.object_store.storage.readData(self.oid,
+            value = self.node.object_store.storage.readData(self.oid,
                     self.name)
+            if isinstance(value, defer.Deferred):
+                value.addCallback(self._cbGet)
+                return value
             self.value = self._getValue(self.value)
+        return self.value
+
+    def _cbGet(self, value):
+        self.value = self._getValue(value)
         return self.value
 
     def commit(self):
@@ -80,10 +89,11 @@ class StorageValue(object):
         Expects data as passed in by ObjectStorage.preload.
         The data will not be saved to storage.
         """
-        if data is not None and self.name in data:
+        if data is not None:
             self._has_value = True
-            self.value = data[self.name]
-            self.value = self._getValue(self.value)
+            if self.name in data:
+                self.value = data[self.name]
+                self.value = self._getValue(self.value)
 
 class StorageNode(StorageValue):
     _write_none = True
@@ -95,9 +105,17 @@ class StorageNode(StorageValue):
         If it has, return None instead of an invalid node.
         """
         value = super(StorageNode, self).get()
+        if isinstance(value, defer.Deferred):
+            value.addCallback(self._cbGetNode)
+            return value
         if value and value.oid is None:
             value = None
         return value
+
+    def _cbGetNode(self, value):
+        if value and value.oid is None:
+            self.value = None
+        return self.value
 
     def _getValue(self, value):
         """Tries to load a node from an oid."""
@@ -154,10 +172,18 @@ class StorageNodeList(StorageValue):
         while in our cache). Remove them from the list if they have.
         """
         value = super(StorageNodeList, self).get()
+        if isinstance(value, defer.Deferred):
+            value.addCallback(self._parseValue)
+            return value
+        self.value = self._parseValue(value)
+        return self.value
+
+    def _parseValue(self, value):
         missing = []
-        for node in value:
-            if node.oid is None:
-                missing.append(node)
+        if value:
+            for node in value:
+                if node.oid is None:
+                    missing.append(node)
         if len(missing) > 0:
             for node in missing:
                 value.remove(node)
