@@ -145,7 +145,6 @@ class BaseTemplate(treenodes.BaseNode):
             rule = rules.pop(0)
             if rule in skip_rules:
                 continue
-            print 'RUNNING RULE', rule
             try:
                 updated += rule.apply(node, overwrite, user, *arguments.get(rule.oid, []))
             except NotEnoughDataError:
