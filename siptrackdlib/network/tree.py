@@ -59,7 +59,7 @@ class NetworkTree(treenodes.BaseNode):
             node = parent.add(user, 'ipv6 network', address)
         else:
             raise errors.SiptrackError('confused, invalid protocol in network tree?')
-        modified = [node] + node.listChildren()
+        modified = [node] + list(node.listChildren())
         return node, modified
 
     def addRange(self, user, range):
