@@ -443,7 +443,7 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         updated = []
         local_user = self._getUser(username)
         if not local_user:
-            return None
+            return None, []
         ldap_server = self._makeServerString()
         user = None
         if type(username) == unicode:
