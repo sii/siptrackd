@@ -515,7 +515,6 @@ def run_siptrackd_twisted(listen_port, ssl_port,
 
     application = service.Application('siptrackd')
     root_service.setServiceParent(application)
-    app.startApplication(application, False)
 
     reactor.callWhenRunning(siptrackd_twisted_init, object_store, application)
 
