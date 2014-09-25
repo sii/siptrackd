@@ -32,7 +32,8 @@ class ObjectStore(object):
         self.oid_class_mapping = yield self._loadOIDClassMapping()
         self.object_tree = objecttree.Tree(tree_callbacks, self)
         self.object_registry = object_registry
-        if not self.storage.OIDExists('0'):
+        exists = yield self.storage.OIDExists('0')
+        if not exists:
             # FIXME: with a global object registry things break down if
             # someone tries to create multiple object stores. -- The oid
             # allocator specifically. This should be fixed.
@@ -66,7 +67,6 @@ class ObjectStore(object):
         nodes.
         """
         self.object_tree.free()
-        self.storage.reload()
         self.oid_class_mapping = yield self._loadOIDClassMapping()
         self.object_tree = objecttree.Tree(tree_callbacks, self)
         yield self._populateObjectTree()
@@ -76,15 +76,17 @@ class ObjectStore(object):
         yield self.view_tree._initUserManager()
         treenodes.perm_cache.clear()
 
+    @defer.inlineCallbacks
     def _checkStorage(self):
-        self.storage.initialize(STORE_VERSION)
-        current_version = self.storage.getVersion()
+        yield self.storage.initialize(STORE_VERSION)
+        current_version = yield self.storage.getVersion()
         if current_version != STORE_VERSION:
             error = 'Wanted storage version %s, got version %s, try upgrading.' % (
                     STORE_VERSION, current_version)
             raise errors.InvalidStorageVersion(error)
-        defer.succeed(True)
+        defer.returnValue(True)
 
+    @defer.inlineCallbacks
     def preLoad(self):
         """Preload node data.
 
@@ -104,7 +106,8 @@ class ObjectStore(object):
         data['storage_data_name] = (data_type, data)
         """
         data_mapping = {}
-        for oid, data_name, data in self.storage.iterOIDData():
+        s_data = yield self.storage.iterOIDData()
+        for oid, data_name, data in s_data:
             if oid not in data_mapping:
                 data_mapping[oid] = {}
             data_mapping[oid][data_name] = data
@@ -112,8 +115,8 @@ class ObjectStore(object):
         self.call_loaded = False
         try:
             for branch in self.object_tree.traverse():
-                if branch.hasExtData():
-                    continue
+#                if branch.hasExtData():
+#                    continue
                 node = branch.ext_data
                 if not node:
                     log.msg('ObjectStore.preLoad branch %s returned no ext_data node, skipping' % (branch))
@@ -132,8 +135,9 @@ class ObjectStore(object):
                 self.call_loaded = False
         finally:
             self.call_loaded = True
-        return defer.succeed(True)
+        defer.returnValue(True)
 
+    @defer.inlineCallbacks
     def _loadOIDClassMapping(self):
         """Return a mapping (dict) of oid -> class_id.
 
@@ -143,10 +147,12 @@ class ObjectStore(object):
         branch), so the class_id needs to be looked up.
         """
         mapping = {}
-        for oid, class_id in self.storage.listOIDClasses():
+        res = yield self.storage.listOIDClasses()
+        for oid, class_id in res:
             mapping[oid] = class_id
-        return defer.succeed(mapping)
+        defer.returnValue(mapping)
     
+    @defer.inlineCallbacks
     def _getNextOID(self):
         """Return the next available object id.
 
@@ -154,13 +160,15 @@ class ObjectStore(object):
         next available one.
         """
         last_oid = 0
-        for parent_oid, oid in self.storage.listOIDs():
+        res = yield self.storage.listOIDs()
+        for parent_oid, oid in res:
             oid = int(oid)
             if oid > last_oid:
                 last_oid = oid
         last_oid += 1
-        return defer.succeed(last_oid)
+        defer.returnValue(last_oid)
 
+    @defer.inlineCallbacks
     def _populateObjectTree(self):
         """Populate the object tree with oids.
 
@@ -168,11 +176,11 @@ class ObjectStore(object):
         object tree (a branch is created per oid.
         Also loads all associations.
         """
-        oids = self.storage.listOIDs()
+        oids = yield self.storage.listOIDs()
         self.object_tree.loadBranches(oids)
-        associations = self.storage.listAssociations()
+        associations = yield self.storage.listAssociations()
         self.object_tree.loadAssociations(associations)
-        return defer.succeed(True)
+        defer.returnValue(True)
 
     def getOID(self, oid, valid_types = None, user = None):
         """Return the object with the given object id.
@@ -249,32 +257,33 @@ class ObjectStore(object):
             log.msg('Trigger %s raised unhandled exception: %s' % (event_trigger, str(e)))
         self.event_triggers_enabled = True
 
+    @defer.inlineCallbacks
     def commit(self, nodes):
-        print 'COOOOOOMIT', nodes
         if type(nodes) not in [list, tuple]:
             nodes = [nodes]
-        for node in nodes:
-            if node._storage_actions:
-                actions = node._storage_actions
-                node._storage_actions = []
-                for action in actions:
-                    print 'AAAAAA', node, action
-                    args = action.get('args')
-                    if action['action'] == 'create_node':
-                        parent_oid = 'ROOT'
-                        parent = node.parent
-                        if parent:
-                            parent_oid = parent.oid
-                        self.storage.addOID(parent_oid, node.oid, node.class_id)
-                        print 'ADD NODE', parent_oid, node.oid, node.class_id
-                    elif action['action'] == 'remove_node':
-                        self.storage.removeOID(node.oid)
-                    elif action['action'] == 'relocate':
-                        self.storage.relocate(node.oid, node.branch.parent.oid)
-                    elif action['action'] == 'associate':
-                        self.storage.associate(node.oid, args['other'])
-                    elif action['action'] == 'disassociate':
-                        self.storage.disassociate(node.oid, args['other'])
-                    elif action['action'] == 'write_data':
-                        self.storage.writeData(node.oid, args['name'], args['value'])
-        return defer.succeed(True)
+        # This happens in a seperate thread.
+        def commit(txn):
+            for node in nodes:
+                if node._storage_actions:
+                    actions = node._storage_actions
+                    node._storage_actions = []
+                    for action in actions:
+                        args = action.get('args')
+                        if action['action'] == 'create_node':
+                            parent_oid = 'ROOT'
+                            parent = node.parent
+                            if parent:
+                                parent_oid = parent.oid
+                            self.storage.addOID(parent_oid, node.oid, node.class_id, txn)
+                        elif action['action'] == 'remove_node':
+                            self.storage.removeOID(node.oid, txn)
+                        elif action['action'] == 'relocate':
+                            self.storage.relocate(node.oid, node.branch.parent.oid, txn)
+                        elif action['action'] == 'associate':
+                            self.storage.associate(node.oid, args['other'], txn)
+                        elif action['action'] == 'disassociate':
+                            self.storage.disassociate(node.oid, args['other'], txn)
+                        elif action['action'] == 'write_data':
+                            self.storage.writeData(node.oid, args['name'], args['value'], txn)
+        yield self.storage.interact(commit)
+        defer.returnValue(True)
