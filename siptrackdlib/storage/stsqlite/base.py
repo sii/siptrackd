@@ -4,6 +4,9 @@ from sqlite3 import dbapi2 as sqlite
 import struct
 import threading
 
+from twisted.enterprise import adbapi
+from twisted.internet import defer
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -45,73 +48,6 @@ sqltables = [
         """
         ]
 
-class SQLHandler(object):
-    def __init__(self, dbcon):
-        self.dbcon = dbcon
-        self._transaction = False
-        self._write_lock = threading.Lock()
-
-    def doQuery(self, query, qargs = (), commit = False, keep_cursor = False, write_lock = False):
-        cur = self.dbcon.cursor()
-        if write_lock:
-            self._write_lock.acquire()
-        try:
-#            print 'q="%s", qargs="%s"' % (query, qargs)
-            cur.execute(query, qargs)
-            if commit and not self._transaction:
-                self.dbcon.commit()
-        except sqlite.DatabaseError:
-            cur.close()
-            raise
-        finally:
-            if write_lock:
-                self._write_lock.release()
-        if not keep_cursor:
-            cur.close()
-            cur = None
-        return cur
-
-    def fetchSingle(self, query, qargs = ()):
-        cur = self.doQuery(query, qargs, keep_cursor = True)
-        res = cur.fetchone()
-        cur.close()
-        if res != None and len(res) > 0:
-            return res[0]
-        return None
-
-    def fetchRow(self, query, qargs = ()):
-        cur = self.doQuery(query, qargs, keep_cursor = True)
-        res = cur.fetchone()
-        cur.close()
-        return res
-
-    def returnsRow(self, query, qargs = ()):
-        cur = self.doQuery(query, qargs, keep_cursor = True)
-        ret = False
-        if cur.fetchone():
-            ret = True
-        cur.close()
-        return ret
-
-    def iterRows(self, query, qargs = ()):
-        cur = self.doQuery(query, qargs, keep_cursor = True)
-        for row in cur:
-            yield row
-        cur.close()
-
-    def startTransaction(self):
-        self._transaction = True
-
-    def endTransaction(self):
-        if self._transaction:
-            self._transaction = False
-            self.dbcon.commit()
-
-    def rollbackTransaction(self):
-        if self._transaction:
-            self._transaction = False
-            self.dbcon.rollback()
-
 class Storage(object):
     def __init__(self, dbfile = None, readonly = False):
         """Load (or create if it doesn't exist) necessary infrastructure."""
@@ -129,115 +65,149 @@ class Storage(object):
                 raise errors.StorageError('invalid value for "readonly" param: %s' % (readonly))
         self.readonly = readonly
 
-    def reload(self):
-        sqlite_db = sqlite.connect(self.dbfile, check_same_thread = False)
-        self.sqlhandler = SQLHandler(sqlite_db)
+    @defer.inlineCallbacks
+    def initialize(self, version):
+        needs_init = False
+        if not os.path.exists(self.dbfile):
+            needs_init = True
+        self.db = adbapi.ConnectionPool('sqlite3', self.dbfile, check_same_thread = False)
+        if needs_init:
+            if self.readonly:
+                raise errors.StorageError('storage in readonly mode')
+            for table in sqltables:
+                yield self.db.runOperation(table)
+            yield self.setVersion(version)
+
+    def interact(self, function, *args, **kwargs):
+        return self.db.runInteraction(function, *args, **kwargs)
+
+    @defer.inlineCallbacks
+    def _fetchSingle(self, *args, **kwargs):
+        res = yield self.db.runQuery(*args, **kwargs)
+        ret = None
+        if len(res) == 1:
+            ret = res[0][0]
+        defer.returnValue(ret)
 
     def getVersion(self):
-        version = self.sqlhandler.fetchSingle("""select version from version""")
-        return version
+        return self._fetchSingle("""select version from version""")
 
     def setVersion(self, version):
         q = """replace into version (version) values (?)"""
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        cur = self.sqlhandler.dbcon.cursor()
-        cur.execute(q, (version,))
-        cur.close()
+        return self.db.runOperation(q, (version,))
 
-    def initialize(self, version):
-        needs_init = False
-        if not os.path.exists(self.dbfile):
-            needs_init = True
-        sqlite_db = sqlite.connect(self.dbfile, check_same_thread = False)
-        self.sqlhandler = SQLHandler(sqlite_db)
-        if needs_init:
-            if self.readonly:
-                raise errors.StorageError('storage in readonly mode')
-            cur = self.sqlhandler.dbcon.cursor()
-            for table in sqltables:
-                cur.execute(table)
-            cur.close()
-            self.setVersion(version)
-            self.sqlhandler.dbcon.commit()
-
-    def startTransaction(self):
-        self.sqlhandler.startTransaction()
-
-    def endTransaction(self):
-        self.sqlhandler.endTransaction()
-
-    def rollbackTransaction(self):
-        self.sqlhandler.rollbackTransaction()
-
-    def addOID(self, parent_oid, oid, class_id):
+    def addOID(self, parent_oid, oid, class_id, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
         q = """insert into idmap (parent_oid, oid, class_id) values (?, ?, ?)"""
-        args = (parent_oid, oid, class_id)
-        self.sqlhandler.doQuery(q, args, commit = True, write_lock = True)
+        return op(q, (parent_oid, oid, class_id))
 
-    def OIDExists(self, oid):
-        q = """select oid from idmap where oid = ? limit 1"""
-        return self.sqlhandler.returnsRow(q, (oid,))
-
-    def classIDFromOID(self, oid):
-        q = """select class_id from idmap where oid = ? limit 1"""
-        return self.sqlhandler.fetchSingle(q, (oid,))
-
-    def removeOID(self, oid):
+    @defer.inlineCallbacks
+    def removeOID(self, oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
         q = """delete from idmap where oid = ?"""
-        self.sqlhandler.doQuery(q, (oid,), commit = True, write_lock = True)
+        yield op(q, (oid,))
         q = """delete from nodedata where oid = ?"""
-        self.sqlhandler.doQuery(q, (oid,), commit = True, write_lock = True)
+        yield op(q, (oid,))
         q = """delete from associations where self_oid = ?"""
-        self.sqlhandler.doQuery(q, (oid,), commit = True, write_lock = True)
+        yield op(q, (oid,))
+        defer.returnValue(True)
 
-    def listOIDs(self):
-        q = """select * from idmap order by parent_oid"""
-        return [(row[0], row[1]) for row in self.sqlhandler.iterRows(q)]
-
-    def listOIDClasses(self):
-        q = """select oid, class_id from idmap"""
-        return [(row[0], row[1]) for row in self.sqlhandler.iterRows(q)]
-
-    def listAssociations(self):
-        q = """select * from associations"""
-        return [(row[0], row[1]) for row in self.sqlhandler.iterRows(q)]
-
-    def associate(self, self_oid, other_oid):
+    def associate(self, self_oid, other_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
         q = """insert into associations (self_oid, other_oid) values (?, ?)"""
-        self.sqlhandler.doQuery(q, (self_oid, other_oid), commit = True, write_lock = True)
+        return op(q, (self_oid, other_oid))
 
-    def disassociate(self, self_oid, other_oid):
+    def disassociate(self, self_oid, other_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
         q = """delete from associations where self_oid = ? and other_oid = ?"""
-        self.sqlhandler.doQuery(q, (self_oid, other_oid), commit = True, write_lock = True)
+        return op(q, (self_oid, other_oid))
 
-    def relocate(self, self_oid, new_parent_oid):
+    def relocate(self, self_oid, new_parent_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
         q = """update idmap set parent_oid = ? where oid = ?"""
-        self.sqlhandler.doQuery(q, (new_parent_oid, self_oid), commit = True, write_lock = True)
+        return op(q, (new_parent_oid, self_oid))
 
-    def writeData(self, oid, name, data):
+    def writeData(self, oid, name, data, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
         dtype = 'pickle'
         data = pickle.dumps(data)
         data = sqlite.Binary(data)
         qargs = (oid, name, dtype, data)
         q = """replace into nodedata (oid, name, datatype, data) values (?, ?, ?, ?)"""
-        self.sqlhandler.doQuery(q, qargs, commit = True, write_lock = True)
+        return op(q, qargs)
+
+    def removeData(self, oid, name):
+        if self.readonly:
+            raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
+        q = """delete from nodedata where oid=? and name=?"""
+        return op(q, (oid, name), commit = True, write_lock = True)
+
+    @defer.inlineCallbacks
+    def OIDExists(self, oid):
+        q = """select oid from idmap where oid = ? limit 1"""
+        res = yield self._fetchSingle(q, (oid,))
+        if res is None:
+            defer.returnValue(False)
+        defer.returnValue(True)
+
+    def classIDFromOID(self, oid):
+        q = """select class_id from idmap where oid = ? limit 1"""
+        return self._fetchSingle(q, (oid,))
+
+    def listOIDs(self):
+        q = """select parent_oid, oid from idmap order by parent_oid"""
+        return self.db.runQuery(q)
+
+    def listOIDClasses(self):
+        q = """select oid, class_id from idmap"""
+        return self.db.runQuery(q)
+
+    def listAssociations(self):
+        q = """select self_oid, other_oid from associations"""
+        return self.db.runQuery(q)
 
     def dataExists(self, oid, name):
-        q = """select oid from nodedata where oid=? and name=?"""
-        return self.sqlhandler.returnsRow(q, (oid, name))
+        q = """select oid from nodedata where oid=? and name=? limit 1"""
+        res = yield self.db.runQuery(q, (oid, name))
+        if res:
+            defer.returnValue(True)
+        defer.returnValue(False)
 
     def _parseReadData(self, dtype, data):
         if dtype == 'pickle':
@@ -246,24 +216,23 @@ class Storage(object):
             raise errors.StorageError('unknown data type "%s" while reading node data' % (dtype))
         return data
 
+    @defer.inlineCallbacks
     def readData(self, oid, name):
-        q = """select datatype, data from nodedata where oid = ? and name = ?"""
-        res = self.sqlhandler.fetchRow(q, (oid, name))
+        q = """select datatype, data from nodedata where oid = ? and name = ? limit 1"""
+        res = yield self.db.runQuery(q, (oid, name))
         if not res:
-            return None
-        dtype, data = res
+            defer.returnValue(None)
+        dtype, data = res[0]
         data = self._parseReadData(dtype, data)
-        return data
+        defer.returnValue(data)
 
-    def removeData(self, oid, name):
-        if self.readonly:
-            raise errors.StorageError('storage in readonly mode')
-        q = """delete from nodedata where oid=? and name=?"""
-        return self.sqlhandler.doQuery(q, (oid, name), commit = True, write_lock = True)
-
+    @defer.inlineCallbacks
     def iterOIDData(self):
         q = """select oid, name, datatype, data from nodedata"""
-        for oid, name, dtype, data in self.sqlhandler.iterRows(q):
+        res = yield self.db.runQuery(q)
+        ret = []
+        for oid, name, dtype, data in res:
             data = self._parseReadData(dtype, data)
-            yield (oid, name, data)
+            ret.append((oid, name, data))
+        defer.returnValue(ret)
 
