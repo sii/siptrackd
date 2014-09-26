@@ -105,13 +105,7 @@ class ObjectStore(object):
         more of:
         data['storage_data_name] = (data_type, data)
         """
-        data_mapping = {}
-        s_data = yield self.storage.iterOIDData()
-        for oid, data_name, data in s_data:
-            if oid not in data_mapping:
-                data_mapping[oid] = {}
-            data_mapping[oid][data_name] = data
-
+        data_mapping = yield self.storage.makeOIDData()
         self.call_loaded = False
         try:
             for branch in self.object_tree.traverse():

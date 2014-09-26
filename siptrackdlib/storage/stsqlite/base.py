@@ -227,12 +227,17 @@ class Storage(object):
         defer.returnValue(data)
 
     @defer.inlineCallbacks
-    def iterOIDData(self):
-        q = """select oid, name, datatype, data from nodedata"""
-        res = yield self.db.runQuery(q)
-        ret = []
-        for oid, name, dtype, data in res:
-            data = self._parseReadData(dtype, data)
-            ret.append((oid, name, data))
+    def makeOIDData(self):
+        def run(txn):
+            data_mapping = {}
+            q = """select oid, name, datatype, data from nodedata"""
+            res = txn.execute(q)
+            for oid, name, dtype, data in res:
+                data = self._parseReadData(dtype, data)
+                if oid not in data_mapping:
+                    data_mapping[oid] = {}
+                data_mapping[oid][name] = data
+            return data_mapping
+        ret = yield self.db.runInteraction(run)
         defer.returnValue(ret)
 
