@@ -762,13 +762,13 @@ class UserCommon(object):
             if not self.authenticate(user_password):
                 raise errors.SiptrackError('invalid user password when connecting password key')
             k = self.add(None, 'subkey', password_key, user_password, pk_password)
-            updated = [k + k._updated_create]
+            updated = [k] + k._updated_create
         else: 
             pk = self.getPublicKey()
             if not pk:
                 raise errors.SiptrackError('No public key found for user, the public key will be created the first time the user logs in to siptrack.')
             k = self.add(None, 'pending subkey', password_key, pk_password, pk)
-            updated = [k + k._updated_create]
+            updated = [k] + k._updated_create
         return updated
 
     def _userInit(self, password):
