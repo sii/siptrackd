@@ -48,11 +48,15 @@ class ObjectStore(object):
 #                    view.ViewTree.class_id)
             self.oid_class_mapping[self.view_tree.oid] = view.ViewTree.class_id
         else:
+            print 'Populating object tree'
             yield self._populateObjectTree()
+            print 'Object tree populated'
             self.view_tree = self.getOID('0')
         object_registry.next_oid = yield self._getNextOID()
         if self.preload:
+            print 'Preloading objects'
             yield self.preLoad()
+            print 'Objects preloaded'
         self.event_triggers_enabled = True
         self.event_triggers = list(self.view_tree.listChildren(include = ['event trigger']))
         yield self.view_tree._initUserManager()
@@ -105,7 +109,9 @@ class ObjectStore(object):
         more of:
         data['storage_data_name] = (data_type, data)
         """
+        print 'Loading OID data'
         data_mapping = yield self.storage.makeOIDData()
+        print 'OID data loaded'
         self.call_loaded = False
         try:
             for branch in self.object_tree.traverse():
