@@ -27,7 +27,7 @@ class AttributeBase(treenodes.BaseNode):
         name = self.name
         if type(name) == unicode:
             name  = name.encode('utf-8')
-        name = name.lower().replace(' ', '_')
+        name = name.lower().replace(' ', '_').replace('/', '_')
         values = {}
         if self.atype == 'binary':
             values = {}
