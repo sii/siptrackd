@@ -200,6 +200,26 @@ class SiptrackdRPC(baserpc.BaseRPC):
         return session.data_iterators.getData(iter_id)
 
     @helpers.ValidateSession()
+    def xmlrpc_iter_quicksearch_hostnames(self, session, search_pattern, include_data = True,
+            include_parents = True, include_associations = True,
+            include_references = True,
+            max_results = None):
+        """Search for objects starting at oid."""
+        user = session.user
+        searcher = self.object_store.quicksearchHostnames(search_pattern,
+                                                 user,
+                                                 max_results)
+        listcreator = gatherer.ListCreator(self.object_store, user)
+        build_iter = listcreator.iterSearch(searcher, include_data, include_parents,
+                include_associations, include_references)
+        iter_id = session.data_iterators.add(build_iter)
+        return session.data_iterators.getData(iter_id)
+
+    @helpers.ValidateSession()
+    def xmlrpc_iter_quicksearch_hostnames_next(self, session, iter_id):
+        return session.data_iterators.getData(iter_id)
+
+    @helpers.ValidateSession()
     def xmlrpc_iter_search(self, session, oid, search_pattern, attr_limit = [],
             include = [], exclude = [], no_match_break = False,
             include_data = True, include_parents = True, include_associations = True,

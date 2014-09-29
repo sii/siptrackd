@@ -206,6 +206,24 @@ class WhooshSearch(BaseSearch):
                     if max_results and count >= max_results:
                         break
 
+    def searchHostnames(self, queries, max_results = None):
+        if type(queries) != list:
+            queries = [queries]
+        parser = QueryParser('name', self.ix.schema)
+        with self.ix.searcher() as searcher:
+            for query in queries:
+                if type(query) != unicode:
+                    query = query.decode('utf-8')
+                log.msg('search query: %s' % (query))
+                query = parser.parse(query)
+                log.msg('search query parsed: %s' % (query))
+                count = 0
+                for result in searcher.search(query, limit = None):
+                    yield result['oid']
+                    count += 1
+                    if max_results and count >= max_results:
+                        break
+
 if _have_whoosh:
     # Make the default wildcard plugin stop splitting on . and -
     class WildcardPlugin(plugins.WildcardPlugin):

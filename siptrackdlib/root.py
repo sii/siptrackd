@@ -241,6 +241,40 @@ class ObjectStore(object):
             count += 1
             yield node
 
+    def quicksearchHostnames(self, search_pattern, user = None, max_results = None):
+        """Quick search for text strings.
+
+        Uses the searcher interface from search.py.
+        
+        search_pattern : text pattern to search for.
+        include    : include only node types listed
+        exclude    : exclude node types listed
+        """
+        if not self.searcher:
+            raise errors.SiptrackError('no searcher selected, quicksearch unavailable')
+        returned = {}
+        count = 0
+        for oid in self.searcher.searchHostnames(search_pattern, max_results=None):
+            try:
+                node = self.getOID(oid)
+            except errors.NonExistent:
+                log.msg('quicksearch matched non-existent oid, something is wrong: %s' % (oid))
+                continue
+            if node.class_name in ['attribute', 'versioned attribute']:
+                # Get the attributes nearest _non-attribute_ parent.
+                node = node.getParentNode()
+            if not node.hasReadPermission(user):
+                continue
+            if node.oid in returned:
+                continue
+            if node.class_name not in ['device']:
+                continue
+            returned[node.oid] = True
+            if max_results and count >= max_results:
+                break
+            count += 1
+            yield node
+
     def triggerEvent(self, event_type, *event_args, **event_kwargs):
         # Don't trigger any more events while in an event trigger,
         # otherwise we could end up in a nasty loop.
