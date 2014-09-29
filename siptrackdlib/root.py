@@ -306,6 +306,7 @@ class ObjectStore(object):
                     actions = node._storage_actions
                     node._storage_actions = []
                     for action in actions:
+#                        print 'COMMIT ACTION', node, action
                         args = action.get('args')
                         if action['action'] == 'create_node':
                             parent_oid = 'ROOT'
