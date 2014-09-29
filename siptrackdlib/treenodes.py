@@ -163,7 +163,7 @@ class BaseNode(object):
 
         Called by the object tree branch when it's freed.
         """
-        self.oid = None
+#        self.oid = None
         self.branch = None
         self.object_store = None
         self.searcher = None
@@ -254,7 +254,7 @@ class BaseNode(object):
         for assoc in list(self.associations):
             self.disassociate(assoc)
         self.branch = None
-        self.oid = None
+#        self.oid = None
         self.removed = True
         self.setModified()
         self.storageAction('remove_node')

@@ -117,10 +117,11 @@ class Network(treenodes.BaseNode):
         Overrides Treenode.remove because when doing a non-recursive removal,
         we still want to get rid of everything except networks.
         """
+        updated = []
         if not recursive:
             for child in list(self.listChildren(exclude = ['ipv6 network'])):
-                child.remove(recursive = True, user = user)
-        super(Network, self).remove(recursive, user)
+                updated += child.remove(recursive = True, user = user)
+        updated += super(Network, self).remove(recursive, user)
     delete = remove
 
     def _remove(self, *args, **kwargs):
