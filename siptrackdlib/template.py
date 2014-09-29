@@ -1,4 +1,5 @@
 import re
+import time
 
 from siptrackdlib.objectregistry import object_registry
 from siptrackdlib import treenodes
@@ -111,6 +112,8 @@ class BaseTemplate(treenodes.BaseNode):
 
     def apply(self, node, arguments = {}, overwrite = False, skip_rules = [],
             user = None):
+        start = time.time()
+        print 'APPLY TEMPLATE', start
         # First make as certain as possible that everything checks out
         # before we start applying the rules.
         for rule in self.listCombinedRules():
@@ -151,6 +154,7 @@ class BaseTemplate(treenodes.BaseNode):
                 # A fixed rule expansion didn't have enough data to continue.
                 # Retry it later.
                 retry_rules.append(rule)
+        print 'APPLY TEMPLATE DONE', start, time.time()-start
         return updated
 
     def listRules(self):
@@ -482,15 +486,18 @@ class TemplateRuleFixed(BaseTemplateRule):
         No error checking should be need since everything has already been
         checked in _resolveArgs and friends.
         """
-        counters = []
+        updated = []
         for arg in args:
             arg_type, arg_name = arg.split(':', 1)
             if arg_type in ['counter', 'counterloop']:
                 counter = self._getCounter(arg_type, arg_name)
                 counter.inc()
+                updated.append(counter)
+        return updated
 
     def _expandValue(self, node, value, inc_counters = True):
         """Perform variable expansion on a fixed rule string."""
+        updated = []
         split = split_string(value)
         if len(split) == 0:
             return ''
@@ -503,22 +510,23 @@ class TemplateRuleFixed(BaseTemplateRule):
         # Increment the counters _last_ when we've seen that everything
         # has worked out.
         if inc_counters:
-            self._incCounters(split[1:])
-        return value
+            updated += self._incCounters(split[1:])
+        return value, updated
 
     def validate(self, node, user):
         value = self.value.get()
         if self.variable_expansion.get() is True:
             try:
-                value = self._expandValue(node, value, inc_counters = False)
+                value, updated = self._expandValue(node, value, inc_counters = False)
             except NotEnoughDataError:
                 pass
 
     def apply(self, node, overwrite, user):
+        updated = []
         value = self.value.get()
         if self.variable_expansion.get() is True:
-            value = self._expandValue(node, value)
-        updated = []
+            value, _u = self._expandValue(node, value)
+            updated += _u
         if overwrite:
             updated += self.removeAttributes(node, self.attr_name.get())
         attr = node.add(None, 'versioned attribute', self.attr_name.get(),
