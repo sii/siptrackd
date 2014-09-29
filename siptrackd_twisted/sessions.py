@@ -39,9 +39,7 @@ class DataIterators(object):
         return ret
 
     def threadGetData(self, i_id):
-        # Disabled threaded fetches, for now.
-        return self.getData(i_id)
-#        return threads.deferToThread(self.getData, i_id)
+        return threads.deferToThread(self.getData, i_id)
 
 class Session(object):
     def __init__(self, max_idle):
