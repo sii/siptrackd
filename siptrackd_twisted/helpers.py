@@ -79,11 +79,10 @@ class ValidateSession(object):
                     raise errors.PermissionDenied()
             session.accessed()
             args = (args[0], session) + args[2:]
-#            print func, args[1:], kwargs
             start = time.time()
             if self.error_handler:
                 try:
-#                    print 'Running', func, args[2:], session.user
+                    print 'Running', func, args[2:], session.user
                     ret = func(*args, **kwargs)
                     if isinstance(ret, defer.Deferred):
                         ret.addErrback(_eb_ret)
