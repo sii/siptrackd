@@ -1,3 +1,4 @@
+import time
 from twisted.internet import defer
 
 from siptrackdlib import objecttree
@@ -297,12 +298,14 @@ class ObjectStore(object):
             nodes = [nodes]
         # This happens in a seperate thread.
         def commit(txn):
-            for node in nodes:
+            start = time.time()
+            print 'STARTING COMMIT', start, len(nodes)
+            while nodes:
+                node = nodes.pop(0)
                 if node._storage_actions:
                     actions = node._storage_actions
                     node._storage_actions = []
                     for action in actions:
-                        print 'COMMIT ACTION', node, action
                         args = action.get('args')
                         if action['action'] == 'create_node':
                             parent_oid = 'ROOT'
@@ -320,5 +323,8 @@ class ObjectStore(object):
                             self.storage.disassociate(node.oid, args['other'], txn)
                         elif action['action'] == 'write_data':
                             self.storage.writeData(node.oid, args['name'], args['value'], txn)
+                        elif action['action'] == 'affecting_node':
+                            nodes.append(args['node'])
+            print 'COMMIT DONE', start, time.time()-start
         yield self.storage.interact(commit)
         defer.returnValue(True)
