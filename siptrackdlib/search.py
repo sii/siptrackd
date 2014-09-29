@@ -227,9 +227,9 @@ class WhooshSearch(BaseSearch):
             for query in queries:
                 if type(query) != unicode:
                     query = query.decode('utf-8')
-                log.msg('search query: %s' % (query))
+#                log.msg('search query: %s' % (query))
                 query = parser.parse(query)
-                log.msg('search query parsed: %s' % (query))
+#                log.msg('search query parsed: %s' % (query))
                 count = 0
                 for result in searcher.search(query, limit = None):
                     yield result['oid']
