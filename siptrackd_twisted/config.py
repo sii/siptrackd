@@ -21,7 +21,7 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
         nt = self.object_store.getOID(network_tree_oid, 'network tree', user = session.user)
         obj = parent.add(session.user, 'config network autoassign', nt, range_start,
                 range_end)
-        self.object_store.commit(obj)
+        yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
     @helpers.ValidateSession()
@@ -33,7 +33,7 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
         node.network_tree.set(nt)
         node.range_start.set(range_start)
         node.range_end.set(range_end)
-        self.object_store.commit(node)
+        yield self.object_store.commit(node)
         defer.returnValue(True)
 
 class ConfigValueRPC(baserpc.BaseRPC):
@@ -44,7 +44,7 @@ class ConfigValueRPC(baserpc.BaseRPC):
     def xmlrpc_add(self, session, parent_oid, name, value):
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'config value', name, value)
-        self.object_store.commit(obj)
+        yield self.object_store.commit(obj)
         defer.returnValue(obj.id)
 
     @helpers.ValidateSession()
@@ -52,7 +52,7 @@ class ConfigValueRPC(baserpc.BaseRPC):
     def xmlrpc_set_name(self, session, oid, name):
         node = self.getOID(session, oid)
         node.name.set(name)
-        self.object_store.commit(node)
+        yield self.object_store.commit(node)
         defer.returnValue(True)
 
     @helpers.ValidateSession()
@@ -60,7 +60,7 @@ class ConfigValueRPC(baserpc.BaseRPC):
     def xmlrpc_set_value(self, session, oid, value):
         node = self.getOID(session, oid)
         node.value.set(value)
-        self.object_store.commit(node)
+        yield self.object_store.commit(node)
         defer.returnValue(True)
 
 def config_network_autoassign_data_extractor(node, user):

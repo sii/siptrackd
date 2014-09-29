@@ -27,7 +27,7 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
         obj, modified = parent.addNetwork(session.user, address)
-        self.object_store.commit(modified)
+        yield self.object_store.commit(modified)
         defer.returnValue(obj.oid)
 
     @helpers.ValidateSession()
@@ -40,7 +40,7 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
         node = self.getOID(session, oid)
         updated = node.prune()
         if updated:
-            self.object_store.commit(updated)
+            yield self.object_store.commit(updated)
             defer.returnValue(True)
         defer.returnValue(False)
 
@@ -66,7 +66,7 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
             if parent.class_name != 'network tree':
                 raise siptrackdlib.errors.SiptrackError('unable to find parent network tree')
         obj, modified = parent.addNetwork(session.user, address)
-        self.object_store.commit(modified)
+        yield self.object_store.commit(modified)
         defer.returnValue(obj.oid)
 
     @helpers.ValidateSession()
@@ -79,7 +79,7 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
         node = self.getOID(session, oid)
         updated = node.prune()
         if updated:
-            self.object_store.commit(updated)
+            yield self.object_store.commit(updated)
             defer.returnValue(True)
         defer.returnValue(False)
 
@@ -118,7 +118,7 @@ class NetworkRangeIPV4RPC(baserpc.BaseRPC):
         node = self.getOID(session, oid)
         updated = node.prune()
         if updated:
-            self.object_store.commit(updated)
+            yield self.object_store.commit(updated)
             defer.returnValue(True)
         defer.returnValue(False)
 
@@ -148,7 +148,7 @@ class NetworkRangeIPV6RPC(baserpc.BaseRPC):
         node = self.getOID(session, oid)
         updated = node.prune()
         if updated:
-            self.object_store.commit(updated)
+            yield self.object_store.commit(updated)
             defer.returnValue(True)
         defer.returnValue(False)
 
