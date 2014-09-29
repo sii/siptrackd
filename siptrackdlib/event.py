@@ -19,14 +19,14 @@ class CommandQueue(treenodes.BaseNode):
     def __init__(self, oid, branch):
         super(CommandQueue, self).__init__(oid, branch)
 
-    def createCommand(self, freetext, commit = True):
+    def createCommand(self, freetext, affecting_node = None):
         cmd = self.add(None, 'command', freetext)
         # This is not a great solution, but a necessary evil.
         # createCommand is used in scripted triggers which really shouldn't
         # need to have to deal with command returning deferreds, so this
         # is the compromise.
-        if commit:
-            cmd.commit()
+        if affecting_node:
+            affecting_node.storageAction('affecting_node', {'node': cmd})
         return cmd
 
 class Command(treenodes.BaseNode):
