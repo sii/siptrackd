@@ -67,8 +67,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
     If no specific data is to be returned, return True if everything worked
     out or an xmlrpclib Fault if things went wrong.
     """
-    @defer.inlineCallbacks
     @helpers.error_handler
+    @defer.inlineCallbacks
     def xmlrpc_login(self, username, password):
         """Start a new session."""
         user, updated = self.view_tree.user_manager.login(username, password)
@@ -128,8 +128,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
         return True
     xmlrpc_location_exists = xmlrpc_oid_exists
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_move_oid(self, session, oid, new_parent_oid):
         """Move an oid to a new parent."""
         obj = self.object_store.getOID(oid, user = session.user)
@@ -220,8 +220,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
     def xmlrpc_iter_search_next(self, session, iter_id):
         return session.data_iterators.getData(iter_id)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_associate(self, session, oid_1, oid_2):
         """Create an association between two objects."""
         obj_1 = self.object_store.getOID(oid_1, user = session.user)
@@ -230,8 +230,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
         yield self.object_store.commit([obj_1, obj_2])
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_disassociate(self, session, oid_1, oid_2):
         """Remove an association between two objects."""
         obj_1 = self.object_store.getOID(oid_1, user = session.user)
@@ -292,8 +292,8 @@ class SiptrackdRPC(baserpc.BaseRPC):
         node.logPermissionCache(user)
         return True
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_reload_objectstore(self, session):
         log.msg('Reloading object store by command')
         try:

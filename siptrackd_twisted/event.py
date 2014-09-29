@@ -13,8 +13,8 @@ class CommandQueueRPC(baserpc.BaseRPC):
 class CommandRPC(baserpc.BaseRPC):
     node_type = 'command'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_freetext(self, session, oid, value):
         """Set value."""
         node = self.getOID(session, oid)
@@ -34,8 +34,8 @@ class EventTriggerRuleRPC(baserpc.BaseRPC):
 class EventTriggerRulePythonRPC(baserpc.BaseRPC):
     node_type = 'event trigger rule python'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_code(self, session, oid, value):
         """Set value."""
         node = self.getOID(session, oid)

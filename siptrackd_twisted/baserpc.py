@@ -22,8 +22,8 @@ class BaseRPC(xmlrpc.XMLRPC):
     def getOID(self, session, oid):
         return self.object_store.getOID(oid, self.node_type, user = session.user)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, *args, **kwargs):
         """Create a new node."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -31,8 +31,8 @@ class BaseRPC(xmlrpc.XMLRPC):
         yield node.commit()
         defer.returnValue(node.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)

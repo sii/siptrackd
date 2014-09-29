@@ -11,8 +11,8 @@ from siptrackd_twisted import baserpc
 class DeviceRPC(baserpc.BaseRPC):
     node_type = 'device'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new device."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -20,8 +20,8 @@ class DeviceRPC(baserpc.BaseRPC):
         yield self.object_store.commit(device)
         defer.returnValue(device.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid, prune_networks = True):
         """Delete a device."""
         device = self.getOID(session, oid)
@@ -30,8 +30,8 @@ class DeviceRPC(baserpc.BaseRPC):
         yield self.object_store.commit(updated)
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_autoassign_network(self, session, oid):
         """Autoassign a network to a device."""
         device = self.getOID(session, oid)
@@ -42,8 +42,8 @@ class DeviceRPC(baserpc.BaseRPC):
 class DeviceTreeRPC(baserpc.BaseRPC):
     node_type = 'device tree'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new device tree."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -54,8 +54,8 @@ class DeviceTreeRPC(baserpc.BaseRPC):
 class DeviceCategoryRPC(baserpc.BaseRPC):
     node_type = 'device category'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new device category."""
         parent = self.object_store.getOID(parent_oid, user = session.user)

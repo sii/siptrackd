@@ -18,8 +18,8 @@ class TemplateRPC(baserpc.BaseRPC):
         return oids
 
 class BaseTemplateRPC(baserpc.BaseRPC):
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, inheritance_only,
             inherited_templates):
         """Create a new template."""
@@ -31,8 +31,8 @@ class BaseTemplateRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_apply(self, session, oid, apply_oid, arguments = {}, overwrite = False,
             skip_rules = []):
         """Apply a template to a node."""
@@ -63,16 +63,16 @@ class BaseTemplateRPC(baserpc.BaseRPC):
                 template.suggest_templates(base_node, self.node_type)]
         return oids
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_inheritance_only(self, session, oid, inheritance_only):
         tmpl = self.getOID(session, oid)
         tmpl.inheritance_only.set(inheritance_only)
         yield tmpl.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_inherited_templates(self, session, oid, inherited_templates):
         node = self.getOID(session, oid)
         inherited_templates = [self.object_store.getOID(oid, user = session.user) for oid in inherited_templates]
@@ -92,8 +92,8 @@ class TemplateRuleRPC(baserpc.BaseRPC):
 class TemplateRulePasswordRPC(baserpc.BaseRPC):
     node_type = 'template rule password'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, username, description, key_oid):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, 'template', user = session.user)
@@ -107,8 +107,8 @@ class TemplateRulePasswordRPC(baserpc.BaseRPC):
 class TemplateRuleAssignNetworkRPC(baserpc.BaseRPC):
     node_type = 'template rule assign network'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, 'template', user = session.user)
@@ -119,8 +119,8 @@ class TemplateRuleAssignNetworkRPC(baserpc.BaseRPC):
 class TemplateRuleSubdeviceRPC(baserpc.BaseRPC):
     node_type = 'template rule subdevice'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, num_devices, device_template_oid,
             sequence_offset):
         """Create a new template rule."""
@@ -134,16 +134,16 @@ class TemplateRuleSubdeviceRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_num_devices(self, session, oid, num_devices):
         tmpl = self.getOID(session, oid)
         tmpl.num_devices.set(num_devices)
         yield tmpl.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_device_template(self, session, oid, device_template_oid):
         rule = self.getOID(session, oid)
         tmpl = None
@@ -154,8 +154,8 @@ class TemplateRuleSubdeviceRPC(baserpc.BaseRPC):
         yield rule.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_sequence_offset(self, session, oid, sequence_offset):
         tmpl = self.getOID(session, oid)
         tmpl.sequence_offset.set(sequence_offset)
@@ -165,8 +165,8 @@ class TemplateRuleSubdeviceRPC(baserpc.BaseRPC):
 class TemplateRuleTextRPC(baserpc.BaseRPC):
     node_type = 'template rule text'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, attr_name, versions):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -177,8 +177,8 @@ class TemplateRuleTextRPC(baserpc.BaseRPC):
 class TemplateRuleFixedRPC(baserpc.BaseRPC):
     node_type = 'template rule fixed'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, attr_name, value, variable_expansion,
             versions):
         """Create a new template rule."""
@@ -191,8 +191,8 @@ class TemplateRuleFixedRPC(baserpc.BaseRPC):
 class TemplateRuleRegmatchRPC(baserpc.BaseRPC):
     node_type = 'template rule regmatch'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, attr_name, regexp, versions):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -203,8 +203,8 @@ class TemplateRuleRegmatchRPC(baserpc.BaseRPC):
 class TemplateRuleBoolRPC(baserpc.BaseRPC):
     node_type = 'template rule bool'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, attr_name, default_value, versions):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -216,8 +216,8 @@ class TemplateRuleBoolRPC(baserpc.BaseRPC):
 class TemplateRuleIntRPC(baserpc.BaseRPC):
     node_type = 'template rule int'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, attr_name, default_value, versions):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -229,8 +229,8 @@ class TemplateRuleIntRPC(baserpc.BaseRPC):
 class TemplateRulePasswordRPC(baserpc.BaseRPC):
     node_type = 'template rule password'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, username, description, key_oid):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -244,8 +244,8 @@ class TemplateRulePasswordRPC(baserpc.BaseRPC):
 class TemplateRuleAssignNetworkRPC(baserpc.BaseRPC):
     node_type = 'template rule assign network'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -256,8 +256,8 @@ class TemplateRuleAssignNetworkRPC(baserpc.BaseRPC):
 class TemplateRuleDeleteAttributeRPC(baserpc.BaseRPC):
     node_type = 'template rule delete attribute'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, attr_name):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -268,8 +268,8 @@ class TemplateRuleDeleteAttributeRPC(baserpc.BaseRPC):
 class TemplateRuleFlushNodesRPC(baserpc.BaseRPC):
     node_type = 'template rule flush nodes'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, include, exclude):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -280,8 +280,8 @@ class TemplateRuleFlushNodesRPC(baserpc.BaseRPC):
 class TemplateRuleFlushAssociationsRPC(baserpc.BaseRPC):
     node_type = 'template rule flush associations'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, include, exclude):
         """Create a new template rule."""
         parent = self.object_store.getOID(parent_oid, user = session.user)

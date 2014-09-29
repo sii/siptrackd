@@ -13,8 +13,8 @@ class ConfigRPC(baserpc.BaseRPC):
 class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
     node_type = 'config network autoassign'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, network_tree_oid, range_start,
             range_end):
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -24,8 +24,8 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
         self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_values(self, session, oid, network_tree_oid, range_start,
             range_end):
         node = self.object_store.getOID(oid, 'config network autoassign', user = session.user)
@@ -39,24 +39,24 @@ class ConfigNetworkAutoassignRPC(baserpc.BaseRPC):
 class ConfigValueRPC(baserpc.BaseRPC):
     node_type = 'config value'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, name, value):
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'config value', name, value)
         self.object_store.commit(obj)
         defer.returnValue(obj.id)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_name(self, session, oid, name):
         node = self.getOID(session, oid)
         node.name.set(name)
         self.object_store.commit(node)
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_value(self, session, oid, value):
         node = self.getOID(session, oid)
         node.value.set(value)

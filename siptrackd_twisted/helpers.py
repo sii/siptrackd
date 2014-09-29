@@ -35,7 +35,6 @@ def error_handler(func):
     return handle_errors
 
 def _eb_ret(error):
-    print 'EEEEEEEEEEE', error
     return _check_exception(error.value)
 
 def _check_exception(exc):

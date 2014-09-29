@@ -17,8 +17,8 @@ class NetworkRangeRPC(baserpc.BaseRPC):
 class NetworkIPV4RPC(baserpc.BaseRPC):
     node_type = 'ipv4 network'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, address):
         """Create a new network."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -30,8 +30,8 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
         self.object_store.commit(modified)
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_prune(self, session, oid):
         """Prune a network.
         
@@ -56,8 +56,8 @@ class NetworkIPV4RPC(baserpc.BaseRPC):
 class NetworkIPV6RPC(baserpc.BaseRPC):
     node_type = 'ipv6 network'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, address):
         """Create a new network."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -69,8 +69,8 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
         self.object_store.commit(modified)
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_prune(self, session, oid):
         """Prune a network.
         
@@ -95,8 +95,8 @@ class NetworkIPV6RPC(baserpc.BaseRPC):
 class NetworkRangeIPV4RPC(baserpc.BaseRPC):
     node_type = 'ipv4 network range'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, range):
         """Create a new network range."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -108,8 +108,8 @@ class NetworkRangeIPV4RPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_prune(self, session, oid):
         """Prune a network range.
         
@@ -125,8 +125,8 @@ class NetworkRangeIPV4RPC(baserpc.BaseRPC):
 class NetworkRangeIPV6RPC(baserpc.BaseRPC):
     node_type = 'ipv6 network range'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, range):
         """Create a new network range."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -138,8 +138,8 @@ class NetworkRangeIPV6RPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_prune(self, session, oid):
         """Prune a network range.
         
@@ -155,8 +155,8 @@ class NetworkRangeIPV6RPC(baserpc.BaseRPC):
 class NetworkTreeRPC(baserpc.BaseRPC):
     node_type = 'network tree'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, protocol):
         """Create a new network tree."""
         parent = self.object_store.getOID(parent_oid, user = session.user)

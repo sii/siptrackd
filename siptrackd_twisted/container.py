@@ -12,8 +12,8 @@ from siptrackd_twisted import baserpc
 class ContainerTreeRPC(baserpc.BaseRPC):
     node_type = 'container tree'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new container tree."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -24,8 +24,8 @@ class ContainerTreeRPC(baserpc.BaseRPC):
 class ContainerRPC(baserpc.BaseRPC):
     node_type = 'container'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new container."""
         parent = self.object_store.getOID(parent_oid, user = session.user)

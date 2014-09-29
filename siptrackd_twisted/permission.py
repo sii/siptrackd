@@ -10,8 +10,8 @@ from siptrackd_twisted import baserpc
 class PermissionRPC(baserpc.BaseRPC):
     node_type = 'permission'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, read_access, write_access, users, groups,
             all_users, recursive):
         """Create a new permission."""
@@ -23,8 +23,8 @@ class PermissionRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)

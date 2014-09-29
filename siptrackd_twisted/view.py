@@ -13,8 +13,8 @@ class ViewTreeRPC(baserpc.BaseRPC):
         """Get the default user manager."""
         return self.view_tree.user_manager.oid
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_user_manager(self, session, user_manager_oid):
         """Set the default user manager.
         
@@ -34,8 +34,8 @@ class ViewTreeRPC(baserpc.BaseRPC):
 class ViewRPC(baserpc.BaseRPC):
     node_type = 'view'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session):
         """Create a new view."""
         obj = self.view_tree.add(session.user, 'view')

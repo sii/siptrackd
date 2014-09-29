@@ -13,8 +13,8 @@ import siptrackd_twisted.errors
 class AttributeRPC(baserpc.BaseRPC):
     node_type = 'attribute'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, name, atype, value):
         """Create a new attribute."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -30,8 +30,8 @@ class AttributeRPC(baserpc.BaseRPC):
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_value(self, session, oid, value):
         """Set an existing attributes value."""
         attribute = self.getOID(session, oid)
@@ -50,8 +50,8 @@ class AttributeRPC(baserpc.BaseRPC):
 class VersionedAttributeRPC(baserpc.BaseRPC):
     node_type = 'versioned attribute'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, sid, parent_oid, name, atype, max_versions, value = None):
         """Create a new versioned attribute."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -67,8 +67,8 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_value(self, session, oid, value):
         """Set an existing attributes value."""
         attribute = self.getOID(session, oid)
@@ -84,8 +84,8 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
         yield self.object_store.commit(attribute)
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_max_versions(self, session, oid, max_versions):
         """Set an existing attributes value."""
         attribute = self.getOID(session, oid)

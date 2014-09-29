@@ -16,8 +16,8 @@ class UserManagerRPC(baserpc.BaseRPC):
 
 class UserManagerLocalRPC(baserpc.BaseRPC):
     node_type = 'user manager local'
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new UserManager."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -25,8 +25,8 @@ class UserManagerLocalRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)
@@ -37,8 +37,8 @@ class UserManagerLocalRPC(baserpc.BaseRPC):
 class UserManagerLDAPRPC(baserpc.BaseRPC):
     node_type = 'user manager ldap'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, connection_type, server, port, base_dn,
             valid_groups):
         """Create a new UserManagerLDAP."""
@@ -48,55 +48,55 @@ class UserManagerLDAPRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)
         yield self.object_store.commit(node.delete(recursive))
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_sync_users(self, session, oid, purge_missing_users):
         node = self.getOID(session, oid)
         yield node.syncUsers(purge_missing_users)
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_connection_type(self, session, oid, connection_type):
         node = self.getOID(session, oid)
         node.setConnectionType(connection_type)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_server(self, session, oid, server):
         node = self.getOID(session, oid)
         node.setServer(server)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_port(self, session, oid, port):
         node = self.getOID(session, oid)
         node.setPort(port)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_base_dn(self, session, oid, base_dn):
         node = self.getOID(session, oid)
         node.setBaseDN(base_dn)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_valid_groups(self, session, oid, valid_groups):
         node = self.getOID(session, oid)
         node.setValidGroups(valid_groups)
@@ -106,8 +106,8 @@ class UserManagerLDAPRPC(baserpc.BaseRPC):
 class UserManagerActiveDirectoryRPC(baserpc.BaseRPC):
     node_type = 'user manager active directory'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, server, base_dn,
             valid_groups, user_domain):
         """Create a new UserManagerActiveDirectory."""
@@ -117,48 +117,48 @@ class UserManagerActiveDirectoryRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)
         yield self.object_store.commit(node.delete(recursive))
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_sync_users(self, session, oid, username, password, purge_missing_users):
         node = self.getOID(session, oid)
         node.syncUsers(username, password, purge_missing_users)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_server(self, session, oid, server):
         node = self.getOID(session, oid)
         node.setServer(server)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_base_dn(self, session, oid, base_dn):
         node = self.getOID(session, oid)
         node.setBaseDN(base_dn)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_valid_groups(self, session, oid, valid_groups):
         node = self.getOID(session, oid)
         node.setValidGroups(valid_groups)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_user_domain(self, session, oid, user_domain):
         node = self.getOID(session, oid)
         node.setUserDomain(user_domain)
@@ -171,8 +171,8 @@ class BaseUserRPC(baserpc.BaseRPC):
         """Create a new User."""
         return False
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid):
         """Delete a User."""
         user = self.getOID(session, oid)
@@ -180,16 +180,16 @@ class BaseUserRPC(baserpc.BaseRPC):
         self.session_handler.killUserSessions(user)
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_username(self, session, oid, username):
         user = self.getOID(session, oid)
         node.setUsername(username)
         yield node.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_password(self, session, oid, new_password, old_password):
         session_user = session.user.user
         user = self.getOID(session, oid)
@@ -207,8 +207,8 @@ class BaseUserRPC(baserpc.BaseRPC):
             session.user.password = new_password
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_reset_password(self, session, oid, password):
         session_user = session.user.user
         user = self.getOID(session, oid)
@@ -222,16 +222,16 @@ class BaseUserRPC(baserpc.BaseRPC):
             session.user.password = password
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_administrator(self, session, oid, value):
         user = self.getOID(session, oid)
         user.administrator = value
         yield user.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_connect_password_key(self, session, user_oid, pk_oid,
             user_password = False, pk_password = False):
         """Connect the user to a password key.
@@ -251,8 +251,8 @@ class BaseUserRPC(baserpc.BaseRPC):
 class UserLocalRPC(BaseUserRPC):
     node_type = 'user local'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, username, password, administrator):
         """Create a new User."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -263,14 +263,14 @@ class UserLocalRPC(BaseUserRPC):
 class UserLDAPRPC(BaseUserRPC):
     node_type = 'user ldap'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, *args, **kwargs):
         """Create a new User."""
         raise siptrackdlib.errors.SiptrackError('add not supported for ldap users')
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_password(self, session, oid, new_password, old_password):
         session_user = session.user.user
         user = self.getOID(session, oid)
@@ -285,14 +285,14 @@ class UserLDAPRPC(BaseUserRPC):
 class UserActiveDirectoryRPC(BaseUserRPC):
     node_type = 'user active directory'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, *args, **kwargs):
         """Create a new User."""
         raise siptrackdlib.errors.SiptrackError('add not supported for active directory users')
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_password(self, session, oid, new_password, old_password):
         session_user = session.user.user
         user = self.getOID(session, oid)
@@ -307,8 +307,8 @@ class UserActiveDirectoryRPC(BaseUserRPC):
 class UserGroupRPC(baserpc.BaseRPC):
     node_type = 'user group'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, users):
         """Create a new UserGroup."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -318,8 +318,8 @@ class UserGroupRPC(baserpc.BaseRPC):
         yield obj.commit()
         defer.returnValue(obj.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession(require_admin=True)
+    @defer.inlineCallbacks
     def xmlrpc_set_users(self, session, oid, users):
         node = self.getOID(session, oid)
         users = [self.object_store.getOID(oid, ['user local', 'user ldap'], user = session.user) for oid in users]

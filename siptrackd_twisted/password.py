@@ -11,8 +11,8 @@ from siptrackd_twisted import baserpc
 class PasswordTreeRPC(baserpc.BaseRPC):
     node_type = 'password tree'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new password tree."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -23,8 +23,8 @@ class PasswordTreeRPC(baserpc.BaseRPC):
 class PasswordCategoryRPC(baserpc.BaseRPC):
     node_type = 'password category'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid):
         """Create a new password category."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -35,8 +35,8 @@ class PasswordCategoryRPC(baserpc.BaseRPC):
 class PasswordRPC(baserpc.BaseRPC):
     node_type = 'password'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, password, key_oid = ''):
         """Create a new password."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -48,8 +48,8 @@ class PasswordRPC(baserpc.BaseRPC):
         yield passwd.commit()
         defer.returnValue(passwd.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_password(self, session, oid, new_password):
         """Change a Passwords password."""
         password = self.getOID(session, oid)
@@ -57,8 +57,8 @@ class PasswordRPC(baserpc.BaseRPC):
         yield password.commit()
         defer.returnValue(True)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_set_password_key(self, session, oid, new_password_key_oid):
         """Change a Passwords password key."""
         password = self.getOID(session, oid)
@@ -72,8 +72,8 @@ class PasswordRPC(baserpc.BaseRPC):
 class PasswordKeyRPC(baserpc.BaseRPC):
     node_type = 'password key'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, key):
         """Create a new password key."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
@@ -81,8 +81,8 @@ class PasswordKeyRPC(baserpc.BaseRPC):
         yield pk.commit()
         defer.returnValue(pk.oid)
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_change_key(self, session, oid, new_key):
         """Change a password keys key."""
         pk = self.getOID(session, oid)
@@ -93,8 +93,8 @@ class PasswordKeyRPC(baserpc.BaseRPC):
 class SubKeyRPC(baserpc.BaseRPC):
     node_type = 'subkey'
 
-    @defer.inlineCallbacks
     @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_delete(self, session, oid):
         """Delete a subkey."""
         subkey = self.object_store.getOID(oid, 'subkey', user = session.user)
