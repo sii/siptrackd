@@ -113,6 +113,19 @@ class MemorySearch(BaseSearch):
             if max_results is not None and count > max_results:
                 break
 
+    def searchHostnames(self, queries, max_results = None):
+        count = 0
+        for oid in self.text_oid_map:
+            for string_name in self.text_oid_map[oid]:
+                if string_name != 'name':
+                    continue
+                if text in self.text_oid_map[oid][string_name]:
+                    yield oid
+                    count += 1
+                    break
+            if max_results is not None and count > max_results:
+                break
+
 class WhooshSearch(BaseSearch):
     def __init__(self, storage_directory = None):
         self._using_existing_index = False
