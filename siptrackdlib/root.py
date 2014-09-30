@@ -329,6 +329,8 @@ class ObjectStore(object):
                         elif action['action'] == 'affecting_node':
                             nodes.append(args['node'])
             print 'STORAGE COMMIT DONE', start, time.time()-start
-        yield self.storage.interact(commit)
-        self.searcher.commit(orig_nodes)
+        st_d = self.storage.interact(commit)
+        se_d = self.searcher.commit(orig_nodes)
+        yield st_d
+        yield se_d
         defer.returnValue(True)

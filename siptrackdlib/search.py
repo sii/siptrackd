@@ -15,6 +15,8 @@ try:
 except:
     _have_whoosh = False
 
+from twisted.internet import threads
+
 from siptrackdlib import errors
 from siptrackdlib import log
 
@@ -125,17 +127,19 @@ class WhooshSearch(BaseSearch):
         log.msg('WhooshSearch index building complete.')
 
     def commit(self, nodes):
-        if type(nodes) not in [list, tuple]:
-            nodes = [nodes]
-        else:
-            nodes = list(nodes)
-        self._write_lock.acquire()
-        try:
-            writer = self.ix.writer()
-            self._commit(nodes, writer)
-            writer.commit()
-        finally:
-            self._write_lock.release()
+        def run(nodes):
+            if type(nodes) not in [list, tuple]:
+                nodes = [nodes]
+            else:
+                nodes = list(nodes)
+            self._write_lock.acquire()
+            try:
+                writer = self.ix.writer()
+                self._commit(nodes, writer)
+                writer.commit()
+            finally:
+                self._write_lock.release()
+        return threads.deferToThread(run, nodes)
 
     def _commit(self, nodes, writer):
         start = time.time()
@@ -160,6 +164,10 @@ class WhooshSearch(BaseSearch):
         print 'SEARCHER COMMIT DONE', start, time.time()-start
 
     def _setNode(self, node, writer):
+        # Special case handling of attribute, there is no point in
+        # storing them.
+        if node.class_name in ['attribute', 'versioned attribute']:
+            return
         values = node.buildSearchValues()
 #        print 'SEARCHER SET NODE', node, values
         if values:
