@@ -1,3 +1,4 @@
+import time
 import os
 import os.path
 try:
@@ -70,6 +71,10 @@ class BaseSearch(object):
         """Set a brand new value for a string for a node."""
         pass
 
+    def commit(self, nodes):
+        """Set several nodes at once as a single transaction."""
+        pass
+
     def remove(self, node, string_name, oid, parent):
         """Remove a string for a node."""
         pass
@@ -80,51 +85,6 @@ class BaseSearch(object):
         Returns a generator which yields each matching oid.
         """
         return iter([])
-
-class MemorySearch(BaseSearch):
-    def __init__(self):
-        self.text_oid_map = {}
-
-    def _addOID(self, oid):
-        if oid not in self.text_oid_map:
-            self.text_oid_map[oid] = {}
-
-    def load(self, node, string_name, string_value):
-        oid = self._getNodeOID(node)
-        self._addOID(oid)
-        string_value = self._stringifyValue(string_value)
-        self.text_oid_map[oid][string_name] = string_value
-    set = load
-
-    def remove(self, node, string_name, oid, parent):
-        oid = self._getNodeOID(node)
-        if oid in self.text_oid_map:
-            if string_name in self.text_oid_map[oid]:
-                del self.text_oid_map[oid][string_name]
-
-    def search(self, text, fuzzy = True, default_fields = [], max_results = None):
-        count = 0
-        for oid in self.text_oid_map:
-            for string_name in self.text_oid_map[oid]:
-                if text in self.text_oid_map[oid][string_name]:
-                    yield oid
-                    count += 1
-                    break
-            if max_results is not None and count > max_results:
-                break
-
-    def searchHostnames(self, queries, max_results = None):
-        count = 0
-        for oid in self.text_oid_map:
-            for string_name in self.text_oid_map[oid]:
-                if string_name != 'name':
-                    continue
-                if text in self.text_oid_map[oid][string_name]:
-                    yield oid
-                    count += 1
-                    break
-            if max_results is not None and count > max_results:
-                break
 
 class WhooshSearch(BaseSearch):
     def __init__(self, storage_directory = None):
@@ -160,39 +120,52 @@ class WhooshSearch(BaseSearch):
         attr_types = ['attribute', 'versioned attribute']
         writer = self.ix.writer()
         for node in object_store.view_tree.traverse(exclude = attr_types):
-            self.set(node, '', '', writer)
+            self._setNode(node, writer)
         writer.commit()
         log.msg('WhooshSearch index building complete.')
 
-    def load(self, *args, **kwargs):
-        pass
-
-    def set(self, node, string_name, string_value, writer = None):
-        node = self._getNonAttrNode(node)
-        values = node.buildSearchValues()
-        values['oid'] = unicode(node.oid)
+    def commit(self, nodes):
+        if type(nodes) not in [list, tuple]:
+            nodes = [nodes]
+        else:
+            nodes = list(nodes)
         self._write_lock.acquire()
         try:
-            # Empty, remove.
-            if len(values) == 1:
-                if writer:
-                    writer.delete_by_term('oid', unicode(node.oid))
-                else:
-                    writer = self.ix.writer()
-                    writer.delete_by_term('oid', unicode(node.oid))
-                    writer.commit()
-            else:
-                if writer:
-                    writer.add_document(**values)
-                else:
-                    writer = self.ix.writer()
-                    writer.add_document(**values)
-                    writer.commit()
+            writer = self.ix.writer()
+            self._commit(nodes, writer)
+            writer.commit()
         finally:
             self._write_lock.release()
 
-    def remove(self, node, string_name, oid, parent):
-        self.set(parent, None, None)
+    def _commit(self, nodes, writer):
+        start = time.time()
+        print 'STARTING SEARCHER COMMIT', start, len(nodes)
+        while nodes:
+            node = nodes.pop(0)
+#            print 'SEARCHER COMMIT NODE', node
+            if node._searcher_actions:
+                actions = node._searcher_actions
+                node._searcher_actions = []
+                for action in actions:
+#                    print 'SEARCHER COMMIT ACTION', node, action
+                    args = action.get('args')
+                    if action['action'] == 'create_node':
+                        self._setNode(node, writer)
+                    elif action['action'] == 'remove_node':
+                        writer.delete_by_term('oid', unicode(node.oid))
+                    elif action['action'] == 'set_attr':
+                        self._setNode(args['parent'], writer)
+                    elif action['action'] == 'remove_attr':
+                        self._setNode(args['parent'], writer)
+        print 'SEARCHER COMMIT DONE', start, time.time()-start
+
+    def _setNode(self, node, writer):
+        values = node.buildSearchValues()
+#        print 'SEARCHER SET NODE', node, values
+        if values:
+            values['oid'] = unicode(node.oid)
+            writer.delete_by_term('oid', unicode(node.oid))
+            writer.add_document(**values)
 
     def search(self, queries, fuzzy = True, default_fields = [], max_results = None):
         if type(queries) != list:

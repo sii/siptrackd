@@ -90,17 +90,16 @@ class Attribute(AttributeBase):
                     self._value = False
                 else:
                     self._value = True
-            self.searcher.load(self, 'value', self.value)
 
     def _remove(self, *args, **kwargs):
         oid = self.oid
         parent = self.parent
         super(Attribute, self)._remove(*args, **kwargs)
-        self.searcher.remove(self, 'value', oid, parent)
+        self.searcherAction('remove_attr', {'parent': parent})
 
     def _get_name(self):
         if not self._name:
-            raise errors.MissingData('missing attribute name')
+            raise errors.MissingData('missing attribute name: %s' % (self.oid))
         return self._name
 
     def _set_name(self, val):
@@ -137,7 +136,7 @@ class Attribute(AttributeBase):
         else:
             raise errors.SiptrackError('trying to set attribute value with invalid atype "%s"' % (self._atype))
         self._value = val
-        self.searcher.set(self, 'value', self.value)
+        self.searcherAction('set_attr', {'parent': self.parent})
         self.object_store.triggerEvent('node update', self)
         self.setModified()
     value = property(_get_value, _set_value)
@@ -228,7 +227,7 @@ class VersionedAttribute(AttributeBase):
         self._atype.commit()
         self._values.commit()
         self._max_versions.commit()
-        self.searcher.set(self, 'value', self.value)
+        self.searcherAction('set_attr', {'parent': self.parent})
 
     def _loaded(self, data = None):
         super(VersionedAttribute, self)._loaded(data)
@@ -236,13 +235,12 @@ class VersionedAttribute(AttributeBase):
         self._atype.preload(data)
         self._values.preload(data)
         self._max_versions.preload(data)
-        self.searcher.load(self, 'value', self.value)
 
     def _remove(self, *args, **kwargs):
         oid = self.oid
         parent = self.parent
         super(VersionedAttribute, self)._remove(*args, **kwargs)
-        self.searcher.remove(self, 'value', oid, parent)
+        self.searcherAction('remove_attr', {'parent': parent})
 
     def _get_name(self):
         return self._name.get()
@@ -264,7 +262,7 @@ class VersionedAttribute(AttributeBase):
         if len(values) > self.max_versions:
             values.pop(0)
         self.values = values
-        self.searcher.set(self, 'value', self.value)
+        self.searcherAction('set_attr', {'parent': self.parent})
         self.object_store.triggerEvent('node update', self)
         self.setModified()
     value = property(_get_value, _set_value)

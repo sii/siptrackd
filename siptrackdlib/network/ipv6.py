@@ -62,7 +62,6 @@ class Network(treenodes.BaseNode):
                 raise errors.SiptrackError('network already exists %s' % (self.address))
 
         self._collectChildren()
-        self.searcher.set(self, 'network', unicode(self.address))
 
     def relocate(self, new_parent, user = None):
         """Public relocate method.
@@ -106,7 +105,6 @@ class Network(treenodes.BaseNode):
         Creates self.address from storage.
         """
         self.address = ipaddr.IPNetwork(data['netstring'])
-        self.searcher.load(self, 'network', unicode(self.address))
 
     def addressFromString(self, address):
         return ipaddr.IPNetwork(address)
@@ -128,7 +126,6 @@ class Network(treenodes.BaseNode):
         oid = self.oid
         parent = self.parent
         super(Network, self)._remove(*args, **kwargs)
-        self.searcher.remove(self, 'network', oid, parent)
 
     def prune(self, user = None):
         """Prune a network.
@@ -165,8 +162,9 @@ class Network(treenodes.BaseNode):
 
     def buildSearchValues(self):
         values = super(Network, self).buildSearchValues()
-        values['name'] =  unicode(self.address)
-        values['network'] = unicode(self.address)
+        if not self.removed:
+            values['name'] =  unicode(self.address)
+            values['network'] = unicode(self.address)
         return values
 
 class Range(object):

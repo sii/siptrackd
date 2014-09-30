@@ -293,13 +293,15 @@ class ObjectStore(object):
         self.event_triggers_enabled = True
 
     @defer.inlineCallbacks
-    def commit(self, nodes):
-        if type(nodes) not in [list, tuple]:
-            nodes = [nodes]
+    def commit(self, orig_nodes):
+        if type(orig_nodes) not in [list, tuple]:
+            nodes = [orig_nodes]
+        else:
+            nodes = list(orig_nodes)
         # This happens in a seperate thread.
         def commit(txn):
             start = time.time()
-            print 'STARTING COMMIT', start, len(nodes)
+            print 'STARTING STORAGE COMMIT', start, len(nodes)
             while nodes:
                 node = nodes.pop(0)
                 if node._storage_actions:
@@ -326,6 +328,7 @@ class ObjectStore(object):
                             self.storage.writeData(node.oid, args['name'], args['value'], txn)
                         elif action['action'] == 'affecting_node':
                             nodes.append(args['node'])
-            print 'COMMIT DONE', start, time.time()-start
+            print 'STORAGE COMMIT DONE', start, time.time()-start
         yield self.storage.interact(commit)
+        self.searcher.commit(orig_nodes)
         defer.returnValue(True)

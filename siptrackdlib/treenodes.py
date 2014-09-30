@@ -139,6 +139,7 @@ class BaseNode(object):
         # Contains a list of all StorageValue instances used by the node.
         # Updated by StorageValue.__init__.
         self._storage_actions = []
+        self._searcher_actions = []
         self.object_store = self.branch.tree.ext_data
         self.searcher = self.object_store.searcher
         self.removed = False
@@ -172,6 +173,9 @@ class BaseNode(object):
 
     def storageAction(self, action, args = None):
         self._storage_actions.append({'action': action, 'args': args})
+
+    def searcherAction(self, action, args = None):
+        self._searcher_actions.append({'action': action, 'args': args})
 
     def addChildByID(self, user, class_id, *args, **kwargs):
         """Create a new child of type class_id.
@@ -216,6 +220,7 @@ class BaseNode(object):
         self.ctime.set(int(time.time()))
         self.object_store.triggerEvent('node add', self)
         self.storageAction('create_node')
+        self.searcherAction('create_node')
 
     def _loaded(self, data = None):
         """Called when an existing object has just been loaded.
@@ -258,6 +263,7 @@ class BaseNode(object):
         self.removed = True
         self.setModified()
         self.storageAction('remove_node')
+        self.searcherAction('remove_node')
 
     def _relocate(self):
         """Relocate (new parent) an object. Called from branch callbacks.
@@ -573,10 +579,11 @@ class BaseNode(object):
 
     def buildSearchValues(self):
         values = {}
-        for attribute in self.listChildren(include = ['attribute', 'versioned attribute']):
-            attr_values = attribute.buildSearchValues()
-            values.update(attr_values)
-        values['nodeclass'] = values['nodetype'] = values['type']= unicode(self.class_name)
+        if not self.removed:
+            for attribute in self.listChildren(include = ['attribute', 'versioned attribute']):
+                attr_values = attribute.buildSearchValues()
+                values.update(attr_values)
+            values['nodeclass'] = values['nodetype'] = values['type'] = unicode(self.class_name)
         return values
 
     def setModified(self):
