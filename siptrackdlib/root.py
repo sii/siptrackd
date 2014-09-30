@@ -332,5 +332,7 @@ class ObjectStore(object):
         st_d = self.storage.interact(commit)
         se_d = self.searcher.commit(orig_nodes)
         yield st_d
-        yield se_d
+        # Don't wait for the search commit to finish.
+        # It's running in a seperate thread anyway.
+#        yield se_d
         defer.returnValue(True)
