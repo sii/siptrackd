@@ -45,7 +45,10 @@ sqltables = [
             data blob,
             UNIQUE (oid, name)
         )
-        """
+        """,
+        """create index nodedata_oid_idx on nodedata (oid)""",
+        """create index idmap_oid_idx on idmap (oid)""",
+        """create index associations_self_oid_idx on associations (self_oid)""",
         ]
 
 class Storage(object):
