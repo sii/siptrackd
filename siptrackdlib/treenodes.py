@@ -588,3 +588,7 @@ class BaseNode(object):
 
     def setModified(self):
         self.modtime = time.time()
+
+    def addEventLog(self, text):
+        log = self.add('event log', text)
+        self.storageAction('affecting_node', {'node': log})

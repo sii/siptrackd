@@ -32,6 +32,7 @@ class Device(treenodes.BaseNode):
 
     def _created(self, user):
         super(Device, self)._created(user)
+        self.addEventLog('Created device')
 
     def _loaded(self, data = None):
         super(Device, self)._loaded(data)
@@ -92,4 +93,5 @@ o.registerChild(password.Password)
 o.registerChild(config.ConfigNetworkAutoassign)
 o.registerChild(config.ConfigValue)
 o.registerChild(permission.Permission)
+o.registerChild(eventlog.EventLog)
 
