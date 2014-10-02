@@ -8,6 +8,7 @@ from siptrackdlib import errors
 from siptrackdlib import template
 from siptrackdlib import config
 from siptrackdlib import storagevalue
+from siptrackdlib import eventlog
 
 class DeviceTree(treenodes.BaseNode):
     class_id = 'DT'
@@ -32,7 +33,7 @@ class Device(treenodes.BaseNode):
 
     def _created(self, user):
         super(Device, self)._created(user)
-        self.addEventLog('Created device')
+        self.addEventLog('Created device', user)
 
     def _loaded(self, data = None):
         super(Device, self)._loaded(data)

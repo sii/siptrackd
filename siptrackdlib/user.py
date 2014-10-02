@@ -784,6 +784,9 @@ class UserCommon(object):
         updated += self.runPendingSubKeys(password)
         return updated
 
+    def getUsername(self):
+        return self._username.get()
+
 class UserLocal(treenodes.BaseNode, UserCommon):
     """A user account."""
     class_id = 'U'
