@@ -60,10 +60,10 @@ class Password(treenodes.BaseNode):
         super(Password, self)._created(user)
         if type(self._password.get()) not in [str, unicode]:
             raise errors.SiptrackError('invalid password in password object')
+        self._password_key.commit()
         if self.password_key:
             if not self.password_key.canEncryptDecrypt(self._pk_password, user):
                 raise errors.SiptrackError('unable to access password key')
-            self._password_key.commit()
             password, self.lock_data = self.password_key.encrypt(self._password.get(),
                     self._pk_password, user)
             self._password.set(password)
