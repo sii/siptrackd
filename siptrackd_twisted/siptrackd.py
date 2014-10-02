@@ -521,10 +521,10 @@ def run_siptrackd_twisted(listen_port, ssl_port,
     event_trigger_rule_python_rpc = event.EventTriggerRulePythonRPC(object_store, session_handler)
     event_trigger_rule_rpc.putSubHandler('python', event_trigger_rule_python_rpc)
 
-    event_log_rpc = event.EventLogRPC(object_store, session_handler)
+    event_log_rpc = eventlog.EventLogRPC(object_store, session_handler)
     event_rpc.putSubHandler('log', event_log_rpc)
 
-    event_log_tree_rpc = event.EventLogTreeRPC(object_store, session_handler)
+    event_log_tree_rpc = eventlog.EventLogTreeRPC(object_store, session_handler)
     event_log_rpc.putSubHandler('tree', event_log_tree_rpc)
 
     root_service = service.MultiService()

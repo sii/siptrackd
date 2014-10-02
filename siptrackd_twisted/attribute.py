@@ -43,7 +43,7 @@ class AttributeRPC(baserpc.BaseRPC):
                 value = str(value)
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
-        attribute.value = value
+        attribute._set_value(value, user=session.user)
         yield self.object_store.commit(attribute)
         defer.returnValue(True)
 

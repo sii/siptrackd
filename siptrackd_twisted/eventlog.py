@@ -16,10 +16,10 @@ class EventLogRPC(baserpc.BaseRPC):
 def event_log_tree_data_extractor(node, user):
     return []
 
-def event_log_extractor(node, user):
+def event_log_data_extractor(node, user):
     return [node._logtext.get()]
 
-gatherer.node_data_registry.register(event.EventLogTree,
+gatherer.node_data_registry.register(eventlog.EventLogTree,
         event_log_tree_data_extractor)
-gatherer.node_data_registry.register(event.EventLog,
+gatherer.node_data_registry.register(eventlog.EventLog,
         event_log_data_extractor)
