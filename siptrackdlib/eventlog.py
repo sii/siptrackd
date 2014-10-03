@@ -25,18 +25,21 @@ class EventLog(treenodes.BaseNode):
     class_id = 'EL'
     class_name = 'event log'
 
-    def __init__(self, oid, branch, logtext = None):
+    def __init__(self, oid, branch, event_type = None, event_data = None):
         super(EventLog, self).__init__(oid, branch)
-        self._logtext = storagevalue.StorageText(self, 'logtext', logtext)
+        self._event_type = storagevalue.StorageText(self, 'event_type', event_type)
+        self._event_data = storagevalue.StorageValue(self, 'event_data', event_data)
 
     def _created(self, user):
         super(EventLog, self)._created(user)
-        self._logtext.commit()
+        self._event_type.commit()
+        self._event_data.commit()
 
     def _loaded(self, data = None):
         super(EventLog, self)._loaded(data)
         if data != None:
-            self._logtext.preload(data)
+            self._event_type.preload(data)
+            self._event_data.preload(data)
 
 # Add the objects in this module to the object registry.
 o = object_registry.registerClass(EventLogTree)

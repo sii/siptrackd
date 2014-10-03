@@ -33,14 +33,16 @@ class Device(treenodes.BaseNode):
 
     def _created(self, user):
         super(Device, self)._created(user)
-        self.addEventLog('Created device', user)
+        self.addEventLog('create device', user=user)
 
     def _loaded(self, data = None):
         super(Device, self)._loaded(data)
 
-    def _relocate(self, user):
-        super(Device, self)._relocate(user)
-        self.addEventLog('Moved device', user)
+    def relocate(self, new_parent, user = None):
+        old_parent = self.parent
+        super(Device, self).relocate(new_parent, user)
+        data = {'src_oid': old_parent.oid, 'dst_oid': new_parent.oid, 'src_name': old_parent.getAttributeValue('name', ''), 'dst_name': new_parent.getAttributeValue('name', '')}
+        self.addEventLog('relocate device', data, user)
 
     def remove(self, recursive, user = None, prune_networks = False):
         """Remove a device.

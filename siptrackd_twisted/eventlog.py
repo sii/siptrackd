@@ -17,7 +17,7 @@ def event_log_tree_data_extractor(node, user):
     return []
 
 def event_log_data_extractor(node, user):
-    return [node._logtext.get()]
+    return [node._event_type.get(), node._event_data.get() or False]
 
 gatherer.node_data_registry.register(eventlog.EventLogTree,
         event_log_tree_data_extractor)

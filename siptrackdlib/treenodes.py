@@ -589,14 +589,18 @@ class BaseNode(object):
     def setModified(self):
         self.modtime = time.time()
 
-    def addEventLog(self, text, user = None):
+    def addEventLog(self, event_type, event_data = None, user = None, affects = None):
+        if not event_data:
+            event_data = {}
         if self.removed:
             return
-        username = 'UNKNOWN'
+        event_data['username'] = ''
         if user and user.user:
-            username = user.user.getUsername() or 'UNKNOWN'
-        text = '[User:%s] %s' % (username, text)
-        log = self.add(user, 'event log', text)
-        if user and user.user:
-            log.associate(user.user)
-        self.storageAction('affecting_node', {'node': log})
+            event_data['username'] = user.user.getUsername()
+            event_data['user_oid'] = user.user.oid
+        log = self.add(user, 'event log', event_type, event_data)
+        if affects:
+            affects.storageAction('affecting_node', {'node': log})
+        else:
+            self.storageAction('affecting_node', {'node': log})
+        return log
