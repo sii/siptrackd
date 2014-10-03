@@ -38,6 +38,10 @@ class Device(treenodes.BaseNode):
     def _loaded(self, data = None):
         super(Device, self)._loaded(data)
 
+    def _relocate(self, user):
+        super(Device, self)._relocate(user)
+        self.addEventLog('Moved device', user)
+
     def remove(self, recursive, user = None, prune_networks = False):
         """Remove a device.
 
