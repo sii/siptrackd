@@ -139,7 +139,11 @@ class SiptrackdRPC(baserpc.BaseRPC):
         else:
             new_parent = self.object_store.getOID(new_parent_oid,
                     user = session.user)
+        old_parent = obj.parent
         obj.relocate(new_parent, user = session.user)
+        if obj.class_name == 'device':
+            data = {'src_oid': old_parent.oid, 'dst_oid': new_parent.oid, 'src_name': old_parent.getAttributeValue('name', ''), 'dst_name': new_parent.getAttributeValue('name', '')}
+            obj.addEventLog('relocate device', data, session.user)
         yield obj.commit()
         defer.returnValue(True)
     xmlrpc_relocate = xmlrpc_move_oid

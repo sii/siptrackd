@@ -78,8 +78,6 @@ class Attribute(AttributeBase):
         self.name = self._name
         self.atype = self._atype
         self._set_value(self._value, skip_log=True, user=user)
-        if self.parent.class_name == 'device':
-            self.parent.addEventLog('create attribute', {'name': self._name}, user, affects=self)
 
     def _loaded(self, data = None):
         super(Attribute, self)._loaded(data)
@@ -96,8 +94,6 @@ class Attribute(AttributeBase):
     def _remove(self, user, *args, **kwargs):
         oid = self.oid
         parent = self.parent
-        if self.parent.class_name == 'device':
-            self.parent.addEventLog('remove attribute', {'name': self._name}, user, affects=self)
         super(Attribute, self)._remove(user, *args, **kwargs)
         self.searcherAction('remove_attr', {'parent': parent})
 
@@ -143,8 +139,6 @@ class Attribute(AttributeBase):
         self.searcherAction('set_attr', {'parent': self.parent})
         self.object_store.triggerEvent('node update', self)
         self.setModified()
-        if not skip_log and self.parent.class_name == 'device':
-            self.parent.addEventLog('update attribute', {'name': self._name}, user, affects=self)
     value = property(_get_value, _set_value)
 
     def _get_atype(self):

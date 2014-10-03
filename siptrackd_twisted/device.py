@@ -17,6 +17,7 @@ class DeviceRPC(baserpc.BaseRPC):
         """Create a new device."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         device = parent.add(session.user, 'device')
+        device.addEventLog('create device', user=session.user)
         yield self.object_store.commit(device)
         defer.returnValue(device.oid)
 
