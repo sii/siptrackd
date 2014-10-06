@@ -19,6 +19,11 @@ class EventLogTree(treenodes.BaseNode):
     def __init__(self, oid, branch):
         super(EventLogTree, self).__init__(oid, branch)
 
+    def _remove(self, user):
+        ret = super(EventLogTree, self)._remove(user)
+        self.storageAction('remove_children', {'child_type': 'EL'})
+        return ret
+
 class EventLog(treenodes.BaseNode):
     """A command queue command.
     """

@@ -309,7 +309,7 @@ class ObjectStore(object):
                     actions = node._storage_actions
                     node._storage_actions = []
                     for action in actions:
-#                        print 'COMMIT ACTION', node, action
+                        print 'COMMIT ACTION', node, action
                         args = action.get('args')
                         if action['action'] == 'create_node':
                             parent_oid = 'ROOT'
@@ -319,6 +319,8 @@ class ObjectStore(object):
                             self.storage.addOID(parent_oid, node.oid, node.class_id, txn)
                         elif action['action'] == 'remove_node':
                             self.storage.removeOID(node.oid, txn)
+                        elif action['action'] == 'remove_children':
+                            self.storage.removeChildOID(node.oid, args['child_type'], txn)
                         elif action['action'] == 'relocate':
                             self.storage.relocate(node.oid, node.branch.parent.oid, txn)
                         elif action['action'] == 'associate':

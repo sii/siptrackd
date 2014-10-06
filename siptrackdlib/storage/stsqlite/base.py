@@ -49,8 +49,9 @@ sqltables = [
         )
         """,
         """create index nodedata_oid_idx on nodedata (oid)""",
-        """create index idmap_oid_idx on idmap (oid)""",
         """create index associations_self_oid_idx on associations (self_oid)""",
+        """create index idmap_oid_idx on idmap (oid)""",
+        """create index idmap_parent_oid_idx on idmap (parent_oid)""",
         ]
 
 class Storage(object):
@@ -127,6 +128,22 @@ class Storage(object):
         yield op(q, (oid,))
         q = """delete from associations where self_oid = ?"""
         yield op(q, (oid,))
+        defer.returnValue(True)
+
+    @defer.inlineCallbacks
+    def removeChildOID(self, parent_oid, class_id, txn = None):
+        if self.readonly:
+            raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
+        q = """delete from nodedata where oid in (select oid from idmap where parent_oid = ? and class_id = ?)"""
+        yield op(q, (parent_oid, class_id))
+        q = """delete from associations where self_oid in (select oid from idmap where parent_oid = ? and class_id = ?)"""
+        yield op(q, (parent_oid, class_id))
+        q = """delete from idmap where parent_oid = ? and class_id = ?"""
+        yield op(q, (parent_oid, class_id))
         defer.returnValue(True)
 
     def associate(self, self_oid, other_oid, txn = None):

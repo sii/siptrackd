@@ -54,6 +54,11 @@ class Device(treenodes.BaseNode):
         return updated
     delete = remove
 
+    def _remove(self, user):
+        ret = super(Device, self)._remove(user)
+        self.storageAction('remove_children', {'child_type': 'EL'})
+        return ret
+
     def autoAssignNetwork(self, user):
         for config_net in config.get_config_network_autoassign(self):
             if not config_net.network_tree.get():
