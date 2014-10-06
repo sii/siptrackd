@@ -3,6 +3,7 @@ import codecs
 from sqlite3 import dbapi2 as sqlite
 import struct
 import threading
+import time
 
 from twisted.enterprise import adbapi
 from twisted.internet import defer
@@ -26,7 +27,8 @@ sqltables = [
         (
             parent_oid varchar(16),
             oid varchar(16),
-            class_id varchar(16)
+            class_id varchar(16),
+            timestamp integer
         )
         """,
         """
@@ -108,8 +110,8 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """insert into idmap (parent_oid, oid, class_id) values (?, ?, ?)"""
-        return op(q, (parent_oid, oid, class_id))
+        q = """insert into idmap (parent_oid, oid, class_id, timestamp) values (?, ?, ?, ?)"""
+        return op(q, (parent_oid, oid, class_id, time.time()))
 
     @defer.inlineCallbacks
     def removeOID(self, oid, txn = None):
