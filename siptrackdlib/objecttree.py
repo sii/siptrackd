@@ -195,6 +195,14 @@ class Branch(object):
         self.parent = new_parent
         self.tree.relocate_callback(self, callback_data)
 
+    def unlink(self):
+        """Used when unlinking branches that still exist, but should not be present in the tree.
+
+        Primarily used by event logs.
+        """
+        self.parent.branches.remove(self)
+        self.tree.unlinkedBranch(self.oid)
+
     def addBranch(self, oid, ext_data = None):
         """Create a new directly attached branch."""
         if self.tree.branchExists(oid):
@@ -324,6 +332,13 @@ class Tree(object):
 
         Used to notify the tree of a branch being removed somewhere in the
         tree.
+        """
+        del self.oid_mapping[oid]
+
+    def unlinkedBranch(self, oid):
+        """Used when unlinking branches that still exist, but should not be present in the tree.
+
+        Primarily used by event logs.
         """
         del self.oid_mapping[oid]
 

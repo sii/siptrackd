@@ -603,4 +603,6 @@ class BaseNode(object):
             affects.storageAction('affecting_node', {'node': log})
         else:
             self.storageAction('affecting_node', {'node': log})
+        log.branch.unlink()
         return log
+

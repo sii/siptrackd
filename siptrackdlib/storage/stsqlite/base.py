@@ -232,12 +232,28 @@ class Storage(object):
         defer.returnValue(data)
 
     @defer.inlineCallbacks
-    def makeOIDData(self):
+    def makeOIDClassMapping(self, skip_class_ids):
+        def run(txn):
+            q = """select oid, class_id from idmap"""
+            res = txn.execute(q)
+            mapping = {}
+            for oid, class_id in res:
+                if class_id in skip_class_ids:
+                    continue
+                mapping[oid] = class_id
+            return mapping
+        ret = yield self.db.runInteraction(run)
+        defer.returnValue(ret)
+
+    @defer.inlineCallbacks
+    def makeOIDData(self, skip_class_ids):
         def run(txn):
             data_mapping = {}
-            q = """select oid, name, datatype, data from nodedata"""
+            q = """select nodedata.oid, nodedata.name, nodedata.datatype, nodedata.data, idmap.class_id from nodedata, idmap where nodedata.oid = idmap.oid"""
             res = txn.execute(q)
-            for oid, name, dtype, data in res:
+            for oid, name, dtype, data, class_id in res:
+                if class_id in skip_class_ids:
+                    continue
                 data = self._parseReadData(dtype, data)
                 if oid not in data_mapping:
                     data_mapping[oid] = {}

@@ -18,6 +18,8 @@ tree_callbacks = {
         'relocate': treenodes.relocate_callback
 }
 
+UNLINKED_CLASS_IDS = ['EL']
+
 class ObjectStore(object):
     def __init__(self, storage, preload = True, searcher = None):
         self.preload = preload
@@ -111,7 +113,7 @@ class ObjectStore(object):
         data['storage_data_name] = (data_type, data)
         """
         print 'Loading OID data'
-        data_mapping = yield self.storage.makeOIDData()
+        data_mapping = yield self.storage.makeOIDData(UNLINKED_CLASS_IDS)
         print 'OID data loaded'
         self.call_loaded = False
         try:
@@ -147,11 +149,10 @@ class ObjectStore(object):
         to be loaded. When loading a node only the oid is known (from the
         branch), so the class_id needs to be looked up.
         """
-        mapping = {}
-        res = yield self.storage.listOIDClasses()
-        for oid, class_id in res:
-            mapping[oid] = class_id
-        defer.returnValue(mapping)
+        # This is now done directly in storage to avoid loading unneeded data
+        # (ie. data for UNLINKED_CLASS_IDS - event logs).
+        ret = yield self.storage.makeOIDClassMapping(UNLINKED_CLASS_IDS)
+        defer.returnValue(ret)
     
     @defer.inlineCallbacks
     def _getNextOID(self):
