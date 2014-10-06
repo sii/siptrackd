@@ -60,7 +60,7 @@ class ObjectStore(object):
             print 'Objects preloaded'
         self.event_triggers_enabled = True
         self.event_triggers = list(self.view_tree.listChildren(include = ['event trigger']))
-        yield self.view_tree._initUserManager()
+        yield self.view_tree._init()
         if self.searcher:
             self.searcher._buildIndex(self)
 
