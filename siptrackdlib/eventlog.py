@@ -46,6 +46,7 @@ o = object_registry.registerClass(EventLogTree)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
 o.registerChild(permission.Permission)
+o.registerChild(EventLog)
 
 o = object_registry.registerClass(EventLog)
 o.registerChild(attribute.Attribute)
