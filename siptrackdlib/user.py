@@ -13,6 +13,7 @@ from siptrackdlib import attribute
 from siptrackdlib import password
 from siptrackdlib import errors
 from siptrackdlib import storagevalue
+from siptrackdlib import log
 
 class UserManagerLocal(treenodes.BaseNode):
     """A manager for user accounts."""
@@ -724,8 +725,8 @@ class UserCommon(object):
             # Don't pass on errors if this fails, it would abort the login.
             try:
                 updated += psk.connectPasswordKey(self, password, remove_self = False)
-            except:
-                pass
+            except Exception, e:
+                log.msg('WARNING: error connecting pending subkey: %s' % (str(e)))
             finally:
                 psk.remove(recursive = True)
         return updated

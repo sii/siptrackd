@@ -441,6 +441,7 @@ class PublicKey(treenodes.BaseNode):
         super(PublicKey, self)._loaded(data)
         self._public_key.preload(data)
         self._private_key.preload(data)
+        self._password_key.preload(data)
 
     def _getPassword(self, password, user):
         ret = None
