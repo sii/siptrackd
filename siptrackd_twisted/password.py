@@ -98,8 +98,8 @@ class SubKeyRPC(baserpc.BaseRPC):
     def xmlrpc_delete(self, session, oid):
         """Delete a subkey."""
         subkey = self.object_store.getOID(oid, 'subkey', user = session.user)
-        if self.session.user.user.administrator != True and \
-                self.session.user.user.oid != subkey.parent.oid:
+        if session.user.user.administrator != True and \
+                session.user.user.oid != subkey.parent.oid:
             raise errors.PermissionDenied()
         yield self.object_store.commit(self.object_store.getOID(oid, user = session.user).delete(recursive = True))
         defer.returnValue(True)
