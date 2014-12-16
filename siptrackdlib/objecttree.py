@@ -2,6 +2,7 @@ import sys
 import time
 
 from siptrackdlib import errors
+from siptrackdlib import log
 
 class FilterInclude(object):
     """A traversal filter that always returns 1 (matched)."""
@@ -367,10 +368,12 @@ class Tree(object):
                 else:
                     parent = self.oid_mapping.get(branch.parent)
                 if not parent:
-                    raise errors.SiptrackError(
-                        'unable to locate parent %s for oid %s' % (branch.parent, branch.oid))
-                branch.parent = parent
-                parent.branches.append(branch)
+                    log.msg('WARNING: unable to locate parent %s for oid %s' % (branch.parent, branch.oid))
+#                    raise errors.SiptrackError(
+#                        'unable to locate parent %s for oid %s' % (branch.parent, branch.oid))
+                else:
+                    branch.parent = parent
+                    parent.branches.append(branch)
 
     def loadAssociations(self, associations):
         """Bulk addition of associations.
