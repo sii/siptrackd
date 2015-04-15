@@ -258,6 +258,7 @@ class UserLocalRPC(BaseUserRPC):
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'user local', username, password,
                 administrator)
+        yield obj.commit()
         defer.returnValue(obj.oid)
 
 class UserLDAPRPC(BaseUserRPC):
