@@ -257,7 +257,7 @@ class PasswordKey(treenodes.BaseNode):
 
     def isValidPassword(self, password):
         """Check that a password string is valid for this password key."""
-        if password is None:
+        if type(password) not in [str, unicode]:
             return False
         password = PaddedPassword(password, AES.block_size)
         verify_crypt = self._encrypt(password.padded, self._verify_clear.get())
