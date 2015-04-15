@@ -519,7 +519,10 @@ class PendingSubKey(treenodes.BaseNode):
         public_key = self._public_key.get()
         pk_password = self._pk_password.get()
         pk_password = public_key.decrypt(pk_password, user_password, user)
-        updated = [user.add(None, 'subkey', password_key, user_password, pk_password)]
+        sk = user.add(None, 'subkey', password_key, user_password, pk_password)
+        updated = [sk]
+        if hasattr(sk, '_updated_create'):
+            updated += sk._updated_create
         if remove_self:
             updated += self.remove(recursive=True)
         return updated
