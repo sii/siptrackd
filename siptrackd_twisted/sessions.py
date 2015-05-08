@@ -15,7 +15,9 @@ class DataIterators(object):
 
     def add(self, iterator):
         i_id = self.getID(iterator)
-        self.iterators[i_id] = iterator
+        iter_data = {'iter': iterator}
+        iter_data['data'], iter_data['has_data'] = self._getIterData(iterator)
+        self.iterators[i_id] = iter_data
         return i_id
 
     def remove(self, iterator):
@@ -26,14 +28,30 @@ class DataIterators(object):
     def getID(self, iterator):
         return str(id(iterator))
 
+    def _getIterData(self, iterator):
+        try:
+            data = iterator.next()
+            has_data = True
+        except StopIteration:
+            data = None
+            has_data = False
+        return data, has_data
+
+    def _getNextData(self, iter_data):
+        cur_data = iter_data['data']
+        if iter_data['has_data']:
+            iter_data['data'], iter_data['has_data'] = self._getIterData(iter_data['iter'])
+        return cur_data, iter_data['has_data']
+
     def getData(self, i_id):
-        iterator = self.iterators.get(i_id)
         if not i_id:
             return False
-        ret = {'data': False, 'next': i_id}
-        try:
-            ret['data'] = iterator.next()
-        except StopIteration:
+        iter_data = self.iterators.get(i_id)
+        if not iter_data:
+            return False
+        ret = {'next': i_id}
+        ret['data'], has_data = self._getNextData(iter_data)
+        if not has_data:
             ret['next'] = False
             del self.iterators[i_id]
         return ret
