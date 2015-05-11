@@ -60,6 +60,9 @@ class Device(treenodes.BaseNode):
             if not free:
                 continue
             self.associate(free)
+            if modified is None:
+                modified = []
+            modified.append(self)
             return free, modified
         raise errors.SiptrackError('device unable to autoassign, no available networks')
 

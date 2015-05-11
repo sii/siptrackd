@@ -299,6 +299,7 @@ class Network(treenodes.BaseNode):
 
         Creates self.address from storage.
         """
+        super(Network, self)._loaded(data)
         self.address = Address(data['network'], data['netmask'], False, False)
 
     def addressFromString(self, address):

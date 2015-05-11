@@ -104,6 +104,7 @@ class Network(treenodes.BaseNode):
 
         Creates self.address from storage.
         """
+        super(Network, self)._loaded(data)
         self.address = ipaddr.IPNetwork(data['netstring'])
 
     def addressFromString(self, address):
