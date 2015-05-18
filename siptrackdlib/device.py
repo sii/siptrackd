@@ -41,7 +41,13 @@ class Device(treenodes.BaseNode):
 
         We override the default remove method due to prune_networks.
         """
-        associations = list(self.associations)
+        associations = []
+        if prune_networks:
+            if recursive:
+                for entity in self.traverse(user=user):
+                    associations += entity.listAssocRef()
+            else:
+                associations = self.listAssocRef()
         updated = self.branch.remove(recursive, user)
         if prune_networks:
             for association in associations:
