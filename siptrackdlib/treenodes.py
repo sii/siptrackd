@@ -307,7 +307,7 @@ class BaseNode(object):
         Override me in a subclass.
         See for example network.ipv4.Network for sample usage.
         """
-        return
+        return []
 
     def associate(self, other):
         """Associate an object with another object.
