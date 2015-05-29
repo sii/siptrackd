@@ -177,6 +177,17 @@ class BaseNode(object):
     def searcherAction(self, action, args = None):
         self._searcher_actions.append({'action': action, 'args': args})
 
+    def removeStorageAction(self, rm_action):
+        if not self._storage_actions:
+            return
+        rm = []
+        for action in self._storage_actions:
+            if action['action'] == rm_action:
+                rm.append(action)
+        for action in rm:
+            self._storage_actions.remove(action)
+
+
     def addChildByID(self, user, class_id, *args, **kwargs):
         """Create a new child of type class_id.
 
@@ -264,6 +275,7 @@ class BaseNode(object):
         self.setModified()
         self.storageAction('remove_node')
         self.searcherAction('remove_node')
+        self.removeStorageAction('create_node')
 
     def _relocate(self):
         """Relocate (new parent) an object. Called from branch callbacks.
