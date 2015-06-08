@@ -397,6 +397,45 @@ class TemplateRuleText(BaseTemplateRule):
                 'text', value, self.versions.get())
         return [attr] + self._applyAttributes(attr)
 
+class TemplateRuleTextOptions(BaseTemplateRule):
+    """Plain text based on user input template rule."""
+    class_id = 'TMPLRULETEXTOPT'
+    class_name = 'template rule text options'
+
+    def __init__(self, oid, branch, attr_name = None, versions = None, option_category = None):
+        super(TemplateRuleText, self).__init__(oid, branch)
+        self.attr_name = storagevalue.StorageValue(self, 'attr name',
+                attr_name)
+        self.versions = storagevalue.StorageNumPositive(self, 'versions',
+                versions)
+        self.option_category = storagevalue.StorageNode(self, 'option_category',
+                option_category)
+
+    def _created(self, user):
+        super(TemplateRuleTextOptions, self)._created(user)
+        if type(self.attr_name.get()) not in [str, unicode]:
+            raise errors.SiptrackError('invalid value for attr_name')
+        self.attr_name.commit()
+        self.versions.commit()
+        self.option_category.commit()
+
+    def _loaded(self, data = None):
+        super(TemplateRuleTextOptions, self)._loaded(data)
+        self.attr_name.preload(data)
+        self.versions.preload(data)
+        self.option_category.preload(data)
+
+    def validate(self, node, user, value = ''):
+        if type(value) not in [str, unicode]:
+            raise errors.SiptrackError('invalid argument type for rule %s' % (self.class_name))
+
+    def apply(self, node, overwrite, user, value = ''):
+        if overwrite:
+            self.removeAttributes(node, self.attr_name.get())
+        attr = node.add(None, 'versioned attribute', self.attr_name.get(),
+                'text', value, self.versions.get())
+        return [attr] + self._applyAttributes(attr)
+
 class TemplateRuleFixed(BaseTemplateRule):
     """Template rule to add a fixed string, with or without variable expansion.
 
@@ -785,6 +824,7 @@ o = object_registry.registerClass(DeviceTemplate)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
 o.registerChild(TemplateRuleText)
+o.registerChild(TemplateRuleTextOptions)
 o.registerChild(TemplateRuleFixed)
 o.registerChild(TemplateRuleRegmatch)
 o.registerChild(TemplateRuleBool)
@@ -800,6 +840,7 @@ o = object_registry.registerClass(NetworkTemplate)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
 o.registerChild(TemplateRuleText)
+o.registerChild(TemplateRuleTextOptions)
 o.registerChild(TemplateRuleFixed)
 o.registerChild(TemplateRuleRegmatch)
 o.registerChild(TemplateRuleBool)
@@ -821,6 +862,10 @@ o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
 
 o = object_registry.registerClass(TemplateRuleText)
+o.registerChild(attribute.Attribute)
+o.registerChild(attribute.VersionedAttribute)
+
+o = object_registry.registerClass(TemplateRuleTextOptions)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
 
