@@ -12,6 +12,7 @@ from siptrackdlib import password
 from siptrackdlib import user
 from siptrackdlib import config
 from siptrackdlib import event
+from siptrackdlib import option
 from siptrackdlib import storagevalue
 from siptrackdlib import errors
 
@@ -97,3 +98,4 @@ o.registerChild(password.PasswordTree)
 o.registerChild(config.ConfigNetworkAutoassign)
 o.registerChild(config.ConfigValue)
 o.registerChild(permission.Permission)
+o.registerChild(option.OptionTree)
