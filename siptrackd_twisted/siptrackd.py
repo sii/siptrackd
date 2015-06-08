@@ -26,6 +26,7 @@ from siptrackd_twisted import sessions
 from siptrackd_twisted import helpers
 from siptrackd_twisted import view
 from siptrackd_twisted import counter
+from siptrackd_twisted import option
 from siptrackd_twisted import network
 from siptrackd_twisted import device
 from siptrackd_twisted import password
@@ -370,6 +371,15 @@ def run_siptrackd_twisted(listen_port, ssl_port,
     siptrackd_rpc.putSubHandler('counter', counter_rpc)
     counter_loop_rpc = counter.CounterLoopRPC(object_store, session_handler)
     counter_rpc.putSubHandler('loop', counter_loop_rpc)
+
+    option_rpc = option.OptionRPC(object_store, session_handler)
+    siptrackd_rpc.putSubHandler('option', option_rpc)
+    option_tree_rpc = option.OptionTreeRPC(object_store, session_handler)
+    option_rpc.putSubHandler('tree', option_tree_rpc)
+    option_category_rpc = option.OptionTreeRPC(object_store, session_handler)
+    option_rpc.putSubHandler('category', option_category_rpc)
+    option_value_rpc = option.OptionTreeRPC(object_store, session_handler)
+    option_rpc.putSubHandler('value', option_value_rpc)
 
     user_rpc = user.UserRPC(object_store, session_handler)
     siptrackd_rpc.putSubHandler('user', user_rpc)
