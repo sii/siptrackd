@@ -46,6 +46,15 @@ class OptionValueRPC(baserpc.BaseRPC):
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_set(self, session, oid, value):
+        """Set value."""
+        ov = self.getOID(session, oid)
+        ov.value.set(value)
+        yield self.object_store.commit(ov)
+        defer.returnValue(value)
+
 
 def option_value_data_extractor(node, user):
     return [node.value.get()]
