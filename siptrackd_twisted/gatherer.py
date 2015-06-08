@@ -18,7 +18,8 @@ from siptrackd_twisted import errors
 from siptrackd_twisted import log
 
 class EntityDataCache(object):
-    skip_cache_data_classes = ['password']
+    # Don't cache templates due to problems with their inheritance structures.
+    skip_cache_data_classes = ['password', 'template', 'device template', 'network template']
 
     def __init__(self, node_data_registry):
         self.node_data_registry = node_data_registry

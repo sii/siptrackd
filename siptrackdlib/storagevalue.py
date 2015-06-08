@@ -182,12 +182,13 @@ class StorageNodeList(StorageValue):
         missing = []
         if value:
             for node in value:
-                if node.oid is None:
+                if node.oid is None or node.removed:
                     missing.append(node)
         if len(missing) > 0:
             for node in missing:
                 value.remove(node)
             self.set(value)
+            self.node.setModified()
         return value
 
     def _getValue(self, value):
