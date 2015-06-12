@@ -23,8 +23,8 @@ class ObjectStore(object):
         self.preload = preload
         self.storage = storage
         self.searcher = searcher
-        if not searcher:
-            self.searcher = search.MemorySearch()
+#        if not searcher:
+#            self.searcher = search.MemorySearch()
 
     @defer.inlineCallbacks
     def init(self):

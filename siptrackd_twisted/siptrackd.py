@@ -564,7 +564,7 @@ def list_user_managers(storage):
             print s
         reactor.stop()
     reactor.callWhenRunning(run)
-    reactor.start()
+    reactor.run()
 
 def reset_user_manager(storage):
     @defer.inlineCallbacks
@@ -579,7 +579,7 @@ def reset_user_manager(storage):
         print 'New user manager oid: %s' % (um.oid)
         reactor.stop()
     reactor.callWhenRunning(run)
-    reactor.start()
+    reactor.run()
 
 def daemonize():
     if os.fork():
