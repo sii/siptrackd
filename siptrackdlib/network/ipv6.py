@@ -121,6 +121,7 @@ class Network(treenodes.BaseNode):
             for child in list(self.listChildren(exclude = ['ipv6 network'])):
                 updated += child.remove(recursive = True, user = user)
         updated += super(Network, self).remove(recursive, user)
+        return updated
     delete = remove
 
     def _remove(self, *args, **kwargs):
@@ -136,7 +137,8 @@ class Network(treenodes.BaseNode):
         if not self.hasWritePermission(user):
             raise errors.PermissionDenied()
         if len(list(self.references)) == 0 and \
-                len(list(self.associations)) == 0:
+                len(list(self.associations)) == 0 and \
+                self.isHost():
             return self.remove(recursive = False)
         return []
 

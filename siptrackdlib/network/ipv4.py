@@ -332,7 +332,8 @@ class Network(treenodes.BaseNode):
         if not self.hasWritePermission(user):
             raise errors.PermissionDenied()
         if len(list(self.references)) == 0 and \
-                len(list(self.associations)) == 0:
+                len(list(self.associations)) == 0 and \
+                self.isHost():
             return self.remove(recursive = False)
         return []
 
