@@ -206,8 +206,12 @@ class WhooshSearch(BaseSearch):
         parser = QueryParser('name', self.ix.schema)
         with self.ix.searcher() as searcher:
             for query in queries:
-                if type(query) != unicode:
+                if type(query) == unicode:
+                    pass
+                elif type(query) == str:
                     query = query.decode('utf-8')
+                else:
+                    query = str(query).decode('ascii')
 #                log.msg('search query: %s' % (query))
                 query = parser.parse(query)
 #                log.msg('search query parsed: %s' % (query))
