@@ -16,6 +16,7 @@ from twisted.internet import defer, reactor
 
 try:
     from twisted.internet import ssl
+    from OpenSSL import SSL
 except ImportError:
     ssl = None
 if ssl and not ssl.supported:
@@ -351,6 +352,59 @@ def siptrackd_twisted_init(object_store, application):
     app.startApplication(application, False)
     log.msg('Running')
 
+
+class SiptrackOpenSSLContextFactory(ssl.ContextFactory):
+    """Initiate an openssl context.
+
+    This is basically a straight copy of twisted.internet.ssl.DefaultOpenSSLContextFactory
+    with the difference that it uses SSL.use_certificate_chain_file to
+    allow use of certificate chains.
+    """
+    _context = None
+
+    def __init__(self, privateKeyFileName, certificateFileName,
+                 sslmethod=SSL.SSLv23_METHOD, _contextFactory=SSL.Context):
+        """
+        @param privateKeyFileName: Name of a file containing a private key
+        @param certificateFileName: Name of a file containing a certificate
+        @param sslmethod: The SSL method to use
+        """
+        self.privateKeyFileName = privateKeyFileName
+        self.certificateFileName = certificateFileName
+        self.sslmethod = sslmethod
+        self._contextFactory = _contextFactory
+
+        # Create a context object right now.  This is to force validation of
+        # the given parameters so that errors are detected earlier rather
+        # than later.
+        self.cacheContext()
+
+    def cacheContext(self):
+        if self._context is None:
+            ctx = self._contextFactory(self.sslmethod)
+            # Disallow SSLv2!  It's insecure!  SSLv3 has been around since
+            # 1996.  It's time to move on.
+            ctx.set_options(SSL.OP_NO_SSLv2)
+#            ctx.use_certificate_file(self.certificateFileName)
+            ctx.use_certificate_chain_file(self.certificateFileName)
+            ctx.use_privatekey_file(self.privateKeyFileName)
+            self._context = ctx
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        del d['_context']
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+
+    def getContext(self):
+        """
+        Return an SSL context.
+        """
+        return self._context
+
+
 def run_siptrackd_twisted(listen_port, ssl_port,
         ssl_private_key, ssl_certificate, storage, reload_interval,
         searcher):
@@ -537,7 +591,7 @@ def run_siptrackd_twisted(listen_port, ssl_port,
         siptrackd_xmlrpc_service.setServiceParent(root_service)
 
     if ssl_port:
-        ssl_context = ssl.DefaultOpenSSLContextFactory(ssl_private_key,
+        ssl_context = SiptrackOpenSSLContextFactory(ssl_private_key,
                 ssl_certificate)
         siptrackd_ssl_xmlrpc_service = internet.SSLServer(ssl_port,
                 server.Site(siptrackd_rpc), ssl_context)
@@ -618,7 +672,7 @@ def main(argv):
     parser.add_option('', '--ssl-private-key', dest = 'ssl_private_key',
             help = 'path to optional ssl private key file')
     parser.add_option('', '--ssl-certificate', dest = 'ssl_certificate',
-            help = 'path to optional ssl certificate')
+            help = 'path to optional ssl certificate (including cert chain)')
     parser.add_option('-s', '--storage-options', dest = 'storage_options',
             help = 'options to pass to the selected storage backend')
     parser.add_option('-b', '--storage-backend', dest = 'storage_backend',
