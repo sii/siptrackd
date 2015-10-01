@@ -1,5 +1,9 @@
+from twisted.internet import defer
+
 from siptrackdlib import errors
 
+@defer.inlineCallbacks
 def perform_upgrade(storage):
-    return
+    ret = yield storage.upgrade()
+    defer.returnValue(ret)
 

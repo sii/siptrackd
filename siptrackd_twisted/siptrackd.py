@@ -635,6 +635,16 @@ def reset_user_manager(storage):
     reactor.callWhenRunning(run)
     reactor.run()
 
+def perform_upgrade(storage):
+    @defer.inlineCallbacks
+    def run():
+        print'Running upgrade.'
+        siptrackdlib.upgrade.perform_upgrade(storage)
+        print 'Done.'
+        reactor.stop()
+    reactor.callWhenRunning(run)
+    reactor.run()
+
 def daemonize():
     if os.fork():
         os._exit(0)
@@ -774,7 +784,7 @@ def main(argv):
         reset_user_manager(storage)
         return 0
     if options.upgrade:
-        siptrackdlib.upgrade.perform_upgrade(storage)
+        perform_upgrade(storage)
         return 0
 
     if not log.logger.setup(options.daemon, options.log_syslog, options.log_file,

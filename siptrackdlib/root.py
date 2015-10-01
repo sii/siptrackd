@@ -86,7 +86,7 @@ class ObjectStore(object):
         yield self.storage.initialize(STORE_VERSION)
         current_version = yield self.storage.getVersion()
         if current_version != STORE_VERSION:
-            error = 'Wanted storage version %s, got version %s, try upgrading.' % (
+            error = 'Wanted storage version %s, got version %s, please run `siptrackd upgrade`.' % (
                     STORE_VERSION, current_version)
             raise errors.InvalidStorageVersion(error)
         defer.returnValue(True)

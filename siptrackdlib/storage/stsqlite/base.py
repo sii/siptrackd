@@ -46,10 +46,29 @@ sqltables = [
             UNIQUE (oid, name)
         )
         """,
+        """
+        create table deviceconfigdata
+        (
+            oid varchar(16),
+            data blob,
+            timestamp integer,
+        )
+        """,
         """create index nodedata_oid_idx on nodedata (oid)""",
         """create index idmap_oid_idx on idmap (oid)""",
         """create index associations_self_oid_idx on associations (self_oid)""",
         ]
+
+sqltables_1_to_2 = [
+        """
+        create table deviceconfigdata
+        (
+            oid varchar(16),
+            data blob,
+            timestamp integer,
+        )
+        """,
+]
 
 class Storage(object):
     def __init__(self, dbfile = None, readonly = False):
@@ -244,3 +263,18 @@ class Storage(object):
         ret = yield self.db.runInteraction(run)
         defer.returnValue(ret)
 
+    @defer.inlineCallbacks
+    def _upgrade1to2(self):
+        for table in sqltables_1_to_2:
+            yield self.db.runOperation(table)
+
+    @defer.inlineCallbacks
+    def upgrade(self):
+        version = yield self.getVersion()
+        if version == 1:
+            yield self._upgrade1to2()
+        elif version == 2:
+            pass
+        else:
+            raise errors.StorageError('unknown storage version %s' % (version))
+        defer.returnValue(True)
