@@ -90,7 +90,7 @@ class DeviceConfigTemplate(treenodes.BaseNode):
         self.template.commit()
 
     def _loaded(self, data):
-        super(DeviceConfig, self)._loaded()
+        super(DeviceConfigTemplate, self)._loaded()
         self.template.preload(data)
 
     def _gatherAttributes(self):
@@ -100,6 +100,7 @@ class DeviceConfigTemplate(treenodes.BaseNode):
         for attr in self.parent.listChildren(include=['attribute', 'versioned attribute']):
             ret['parent.%s' % (attr.name)] = attr.value
             ret['device.%s' % (attr.name)] = attr.value
+        return ret
 
     @defer.inlineCallbacks
     def expand(self, keywords):
@@ -112,6 +113,11 @@ class DeviceConfigTemplate(treenodes.BaseNode):
 
 # Add the objects in this module to the object registry.
 o = object_registry.registerClass(DeviceConfig)
+o.registerChild(attribute.Attribute)
+o.registerChild(attribute.VersionedAttribute)
+o.registerChild(permission.Permission)
+
+o = object_registry.registerClass(DeviceConfigTemplate)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
 o.registerChild(permission.Permission)

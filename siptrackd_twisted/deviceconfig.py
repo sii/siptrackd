@@ -96,7 +96,7 @@ class DeviceConfigTemplateRPC(baserpc.BaseRPC):
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
-    def xmlrpc_expand_template(self, session, oid, keywords):
+    def xmlrpc_expand(self, session, oid, keywords):
         node = self.getOID(session, oid)
         ret = yield node.expand(keywords)
         ret = xmlrpclib.Binary(ret)

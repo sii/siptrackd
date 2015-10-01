@@ -80,7 +80,7 @@ class StorageValue(object):
         return value
 
     def _cbGet(self, value):
-        self._getValue(value)
+        value = self._getValue(value)
         if self.cache_value:
             self.value = value
         return value
