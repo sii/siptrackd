@@ -10,6 +10,7 @@ only be stored if it differs from the old version etc.
 
 
 import time
+from string import Template
 from twisted.internet import defer
 
 from siptrackdlib.objectregistry import object_registry
@@ -75,6 +76,39 @@ class DeviceConfig(treenodes.BaseNode):
 
     def getAllConfigs(self):
         return self.object_store.storage.getAllDeviceConfigData(self.oid)
+
+class DeviceConfigTemplate(treenodes.BaseNode):
+    class_id = 'DCTMPL'
+    class_name = 'device config template'
+
+    def __init__(self, oid, branch, template = none):
+        super(DeviceConfigTemplate, self).__init__(oid, branch)
+        self.template = storagevalue.StorageValue(self, 'template', template, cache_value=False)
+
+    def _created(self, user):
+        super(DeviceConfigTemplate, self)._created(user)
+        self.template.commit()
+
+    def _loaded(self, data):
+        super(DeviceConfig, self)._loaded()
+        self.template.preload(data)
+
+    def _gatherAttributes(self):
+        ret = {}
+        for attr in self.listChildren(include=['attribute', 'versioned attribute']):
+            ret[attr.name] = attr.value
+        for attr in self.parent.listChildren(include=['attribute', 'versioned attribute']):
+            ret['parent.%s' % (attr.name)] = attr.value
+            ret['device.%s' % (attr.name)] = attr.value
+
+    @defer.inlineCallbacks
+    def expand(self, keywords):
+        tmpl = yield self.template.get()
+        tmpl = Template(tmpl)
+        attributes = self._gatherAttributes()
+        attributes.update(keywords)
+        ret = tmpl.safe_substitute(attributes)
+        return ret
 
 # Add the objects in this module to the object registry.
 o = object_registry.registerClass(DeviceConfig)

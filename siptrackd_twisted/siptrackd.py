@@ -471,6 +471,8 @@ def run_siptrackd_twisted(listen_port, ssl_port,
 
     device_config_rpc = deviceconfig.DeviceConfigRPC(object_store, session_handler)
     device_rpc.putSubHandler('config', device_config_rpc)
+    device_config_template_rpc = deviceconfig.DeviceConfigTemplateRPC(object_store, session_handler)
+    device_config_rpc.putSubHandler('template', device_config_template_rpc)
 
     password_rpc = password.PasswordRPC(object_store, session_handler)
     siptrackd_rpc.putSubHandler('password', password_rpc)

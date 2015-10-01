@@ -6,7 +6,7 @@ class StorageValue(object):
     """Simple wrapper for storage access for a single variable."""
     _write_none = False
 
-    def __init__(self, node, name, value = None, validator = None):
+    def __init__(self, node, name, value = None, validator = None, cache_value = True):
         self.node = node
         self.oid = node.oid
         self.object_store = node.branch.tree.ext_data
@@ -17,6 +17,7 @@ class StorageValue(object):
             self._has_value = True
         self.value = value
         self._validator_cb = validator
+        self.cache_value = cache_value
 
     def _setValue(self, value):
         """Prepare value for writing to storage.
@@ -46,34 +47,43 @@ class StorageValue(object):
         Both locally and in storage.
         """
         self._validator(value)
-        self._has_value = True
-        self.value = value
         # Don't write anything if the Value is None.
-        if self.value is None and not self._write_none:
+        if value is None and not self._write_none:
             return
-        value = self._setValue(self.value)
+        value = self._setValue(value)
         self.node.storageAction('write_data', {'name': self.name, 'value': value})
         self.node.setModified()
+        if self.cache_value:
+            self._has_value = True
+            self.value = value
+        else:
+            self.value = None
 
     def get(self):
         """Return the value.
 
         Load from storage if necessary.
         """
-        if not self._has_value:
+        if self._has_value:
+            return self.value
+        # self.value is set to None if nothing exists in storage.
+        if self.cache_value:
             self._has_value = True
-            # self.value is set to None if nothing exists in storage.
-            value = self.node.object_store.storage.readData(self.oid,
-                    self.name)
-            if isinstance(value, defer.Deferred):
-                value.addCallback(self._cbGet)
-                return value
-            self.value = self._getValue(self.value)
-        return self.value
+        value = self.node.object_store.storage.readData(self.oid,
+                self.name)
+        if isinstance(value, defer.Deferred):
+            value.addCallback(self._cbGet)
+            return value
+        value = self._getValue(self.value)
+        if self.cache_value:
+            self.value = value
+        return value
 
     def _cbGet(self, value):
-        self.value = self._getValue(value)
-        return self.value
+        self._getValue(value)
+        if self.cache_value:
+            self.value = value
+        return value
 
     def commit(self):
         """Save the locally stored value to storage.
@@ -89,7 +99,7 @@ class StorageValue(object):
         Expects data as passed in by ObjectStorage.preload.
         The data will not be saved to storage.
         """
-        if data is not None:
+        if data is not None and self.cache_value:
             self._has_value = True
             if self.name in data:
                 self.value = data[self.name]
