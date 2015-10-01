@@ -40,6 +40,7 @@ from siptrackd_twisted import baserpc
 from siptrackd_twisted import log
 from siptrackd_twisted import permission
 from siptrackd_twisted import event
+from siptrackd_twisted import deviceconfig
 
 import siptrackdlib
 import siptrackdlib.errors
@@ -467,6 +468,9 @@ def run_siptrackd_twisted(listen_port, ssl_port,
     device_rpc.putSubHandler('tree', device_tree_rpc)
     device_category_rpc = device.DeviceCategoryRPC(object_store, session_handler)
     device_rpc.putSubHandler('category', device_category_rpc)
+
+    device_config_rpc = device.DeviceConfigRPC(object_store, session_handler)
+    device_rpc.putSubHandler('config', device_config_rpc)
 
     password_rpc = password.PasswordRPC(object_store, session_handler)
     siptrackd_rpc.putSubHandler('password', password_rpc)

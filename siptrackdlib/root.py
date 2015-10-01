@@ -10,7 +10,7 @@ from siptrackdlib import search
 from siptrackdlib import log
 from siptrackdlib.objectregistry import object_registry
 
-STORE_VERSION = '1'
+STORE_VERSION = '2'
 
 tree_callbacks = {
         'load_data': treenodes.load_data_callback,

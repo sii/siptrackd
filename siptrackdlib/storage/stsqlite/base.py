@@ -47,27 +47,31 @@ sqltables = [
         )
         """,
         """
-        create table deviceconfigdata
+        create table device_config_data
         (
             oid varchar(16),
             data blob,
             timestamp integer,
+            UNIQUE (oid, timestamp)
         )
         """,
         """create index nodedata_oid_idx on nodedata (oid)""",
         """create index idmap_oid_idx on idmap (oid)""",
         """create index associations_self_oid_idx on associations (self_oid)""",
+        """create index device_config_data_oid_idx on device_config_data (oid)""",
         ]
 
 sqltables_1_to_2 = [
         """
-        create table deviceconfigdata
+        create table device_config_data
         (
             oid varchar(16),
             data blob,
             timestamp integer,
+            UNIQUE (oid, timestamp)
         )
         """,
+        """create index device_config_data_oid_idx on device_config_data (oid)""",
 ]
 
 class Storage(object):
@@ -262,6 +266,49 @@ class Storage(object):
             return data_mapping
         ret = yield self.db.runInteraction(run)
         defer.returnValue(ret)
+
+    def addDeviceConfigData(self, oid, data, timestamp):
+        if self.readonly:
+            raise errors.StorageError('storage in readonly mode')
+        q = """insert into device_config_data (oid, data, timestamp) values (?, ?, ?)"""
+        op = self.db.runOperation
+        return op(q, (oid, data, timestamp))
+
+    def getAllDeviceConfigData(self, oid, only_timestamps = False):
+        if only_timestamp:
+            q = """select timestamp from device_config_data order by timestamp"""
+        else:
+            q = """select data, timestamp from device_config_data order by timestamp"""
+        return self.db.runQuery(q)
+
+    @defer.inlineCallbacks
+    def getLatestDeviceConfigData(self, oid):
+        q = """select data, timestamp from device_config_data where oid = ? order by timestamp limit 1"""
+        res = yield self.db.runQuery(q, (oid))
+        if not res:
+            defer.returnValue(None)
+        data, timestamp = res[0]
+        defer.returnValue((data, timestamp))
+
+    @defer.inlineCallbacks
+    def removeDeviceConfigData(self, oid, timestamp = None, txn = None):
+        if self.readonly:
+            raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
+        if timestamp is not None:
+            q = """delete from device_config_data where oid = ? and timestamp = ?"""
+            yield op(q, (oid, timestamp))
+        else:
+            q = """delete from device_config_data where oid = ?"""
+            yield op(q, (oid,))
+        defer.returnValue(True)
+
+    def countDeviceConfigData(self, oid):
+        q = """select count(*) from device_config_data where oid = ?"""
+        return self._fetchSingle(q, (oid,))
 
     @defer.inlineCallbacks
     def _upgrade1to2(self):

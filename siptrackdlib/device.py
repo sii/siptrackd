@@ -8,6 +8,7 @@ from siptrackdlib import errors
 from siptrackdlib import template
 from siptrackdlib import config
 from siptrackdlib import storagevalue
+from siptrackdlib import deviceconfig
 
 class DeviceTree(treenodes.BaseNode):
     class_id = 'DT'
@@ -101,4 +102,5 @@ o.registerChild(password.Password)
 o.registerChild(config.ConfigNetworkAutoassign)
 o.registerChild(config.ConfigValue)
 o.registerChild(permission.Permission)
+o.registerChild(deviceconfig.DeviceConfig)
 
