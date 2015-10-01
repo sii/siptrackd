@@ -1,4 +1,16 @@
+"""Device configuration management.
+
+The nodes types in this file are intended to be used to store for example
+configuration dumps from switched, routers etc.
+Ie. text based configuration for specific devices.
+
+DeviceConfig will automatically handle versioning. New configuration will
+only be stored if it differs from the old version etc.
+"""
+
+
 import time
+from twisted.internet import defer
 
 from siptrackdlib.objectregistry import object_registry
 from siptrackdlib import treenodes
@@ -38,22 +50,23 @@ class DeviceConfig(treenodes.BaseNode):
 
     @defer.inlineCallbacks
     def _pruneData(self):
-        max_version = self.max_version.get()
+        max_versions = self.max_versions.get()
         if max_versions == 0:
             defer.returnValue()
         cur_versions = yield self.object_store.storage.countDeviceConfigData(self.oid)
         if cur_versions > max_versions:
             timestamps = yield self.object_store.storage.getAllDeviceConfigData(self.oid, only_timestamps = True)
-            timestamps.reverse()
             for n in range(cur_versions - max_versions):
-                yield self.object_store.storage.removeDeviceConfigData(self.oid, timestamps[n])
+                yield self.object_store.storage.removeDeviceConfigData(self.oid, timestamps[n][0])
 
     @defer.inlineCallbacks
     def addConfig(self, data):
-        old_data = self.object_store.storage.getLatestDeviceConfigData(self.oid)
-        if old_data == data:
-            defer.returnValue(False)
-        self.object_store.storage.addDeviceConfigData(self.oid, data, int(time.time()))
+        res = yield self.object_store.storage.getLatestDeviceConfigData(self.oid)
+        if res:
+            old_data, timestamp = res
+            if old_data == data:
+                defer.returnValue(False)
+        yield self.object_store.storage.addDeviceConfigData(self.oid, data, int(time.time()))
         yield self._pruneData()
         defer.returnValue(True)
 
@@ -61,7 +74,7 @@ class DeviceConfig(treenodes.BaseNode):
         return self.object_store.storage.getLatestDeviceConfigData(self.oid)
 
     def getAllConfigs(self):
-        return self.object_store.getAllDeviceConfigData(self.oid)
+        return self.object_store.storage.getAllDeviceConfigData(self.oid)
 
 # Add the objects in this module to the object registry.
 o = object_registry.registerClass(DeviceConfig)

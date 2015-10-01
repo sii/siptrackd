@@ -45,7 +45,7 @@ class ConfigValueRPC(baserpc.BaseRPC):
         parent = self.object_store.getOID(parent_oid, user = session.user)
         obj = parent.add(session.user, 'config value', name, value)
         yield self.object_store.commit(obj)
-        defer.returnValue(obj.id)
+        defer.returnValue(obj.oid)
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks

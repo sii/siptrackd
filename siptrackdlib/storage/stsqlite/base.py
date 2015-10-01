@@ -275,7 +275,7 @@ class Storage(object):
         return op(q, (oid, data, timestamp))
 
     def getAllDeviceConfigData(self, oid, only_timestamps = False):
-        if only_timestamp:
+        if only_timestamps:
             q = """select timestamp from device_config_data order by timestamp"""
         else:
             q = """select data, timestamp from device_config_data order by timestamp"""
@@ -283,8 +283,8 @@ class Storage(object):
 
     @defer.inlineCallbacks
     def getLatestDeviceConfigData(self, oid):
-        q = """select data, timestamp from device_config_data where oid = ? order by timestamp limit 1"""
-        res = yield self.db.runQuery(q, (oid))
+        q = """select data, timestamp from device_config_data where oid = ? order by timestamp desc limit 1"""
+        res = yield self.db.runQuery(q, (oid,))
         if not res:
             defer.returnValue(None)
         data, timestamp = res[0]

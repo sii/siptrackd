@@ -1,5 +1,6 @@
 from twisted.web import xmlrpc
 from twisted.internet import defer
+import xmlrpclib
 
 from siptrackdlib import deviceconfig
 
@@ -12,11 +13,11 @@ class DeviceConfigRPC(baserpc.BaseRPC):
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
-    def xmlrpc_add(self, session, parent_oid, name):
+    def xmlrpc_add(self, session, parent_oid, name, max_versions):
         parent = self.object_store.getOID(parent_oid, user = session.user)
-        obj = parent.add(session.user, 'device config', name)
+        obj = parent.add(session.user, 'device config', name, max_versions)
         yield self.object_store.commit(obj)
-        defer.returnValue(obj.id)
+        defer.returnValue(obj.oid)
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
@@ -28,32 +29,46 @@ class DeviceConfigRPC(baserpc.BaseRPC):
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
-    def xmlrpc_add_config(self, session, oid, data, timestamp):
+    def xmlrpc_set_max_versions(self, session, oid, max_versions):
         node = self.getOID(session, oid)
-        yield node.addConfig(data, timestamp)
+        node.max_versions.set(max_versions)
+        yield self.object_store.commit(node)
+        defer.returnValue(True)
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_add_config(self, session, oid, data):
+        node = self.getOID(session, oid)
+        yield node.addConfig(str(data))
         defer.returnValue(True)
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
     def xmlrpc_get_latest_config(self, session, oid):
         node = self.getOID(session, oid)
-        ret = yield node.getLatestConfig()
-        if ret is None:
+        res = yield node.getLatestConfig()
+        if res is None:
             ret = False
         else:
-            ret = list(ret)
+            data, timestamp = res
+            ret = [xmlrpclib.Binary(data), timestamp]
         defer.returnValue(ret)
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
     def xmlrpc_get_all_configs(self, session, oid):
         node = self.getOID(session, oid)
-        ret = yield node.getAllConfigs()
-        ret = list(ret)
+        res = yield node.getAllConfigs()
+        if res is None:
+            ret = None
+        else:
+            ret = []
+            for data, timestamp in res:
+                ret.append([xmlrpclib.Binary(data), timestamp])
         defer.returnValue(ret)
 
 def device_config_data_extractor(node, user):
-    return [node.name.get()]
+    return [node.name.get(), node.max_versions.get()]
 
 gatherer.node_data_registry.register(deviceconfig.DeviceConfig,
         device_config_data_extractor)
