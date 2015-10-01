@@ -74,7 +74,7 @@ class DeviceConfigTemplateRPC(baserpc.BaseRPC):
     @defer.inlineCallbacks
     def xmlrpc_add(self, session, parent_oid, template):
         parent = self.object_store.getOID(parent_oid, user = session.user)
-        obj = parent.add(session.user, 'device config template', template)
+        obj = parent.add(session.user, 'device config template', str(template))
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
@@ -82,15 +82,24 @@ class DeviceConfigTemplateRPC(baserpc.BaseRPC):
     @defer.inlineCallbacks
     def xmlrpc_set_template(self, session, oid, template):
         node = self.getOID(session, oid)
-        node.template.set(template)
+        node.template.set(str(template))
         yield self.object_store.commit(node)
         defer.returnValue(True)
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
+    def xmlrpc_get_template(self, session, oid):
+        node = self.getOID(session, oid)
+        ret = yield node.template.get()
+        ret = xmlrpclib.Binary(ret)
+        defer.returnValue(ret)
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_expand_template(self, session, oid, keywords):
         node = self.getOID(session, oid)
-        ret = yield template.expand(keywords)
+        ret = yield node.expand(keywords)
+        ret = xmlrpclib.Binary(ret)
         defer.returnValue(ret)
 
 def device_config_data_extractor(node, user):
@@ -98,6 +107,6 @@ def device_config_data_extractor(node, user):
 
 gatherer.node_data_registry.register(deviceconfig.DeviceConfig,
         device_config_data_extractor)
-gatherer.node_data_registry.register(device.DeviceConfigTemplate,
+gatherer.node_data_registry.register(deviceconfig.DeviceConfigTemplate,
         gatherer.no_data_extractor)
 

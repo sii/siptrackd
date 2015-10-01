@@ -103,4 +103,5 @@ o.registerChild(config.ConfigNetworkAutoassign)
 o.registerChild(config.ConfigValue)
 o.registerChild(permission.Permission)
 o.registerChild(deviceconfig.DeviceConfig)
+o.registerChild(deviceconfig.DeviceConfigTemplate)
 

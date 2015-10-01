@@ -81,7 +81,7 @@ class DeviceConfigTemplate(treenodes.BaseNode):
     class_id = 'DCTMPL'
     class_name = 'device config template'
 
-    def __init__(self, oid, branch, template = none):
+    def __init__(self, oid, branch, template = None):
         super(DeviceConfigTemplate, self).__init__(oid, branch)
         self.template = storagevalue.StorageValue(self, 'template', template, cache_value=False)
 
@@ -108,7 +108,7 @@ class DeviceConfigTemplate(treenodes.BaseNode):
         attributes = self._gatherAttributes()
         attributes.update(keywords)
         ret = tmpl.safe_substitute(attributes)
-        return ret
+        defer.returnValue(ret)
 
 # Add the objects in this module to the object registry.
 o = object_registry.registerClass(DeviceConfig)
