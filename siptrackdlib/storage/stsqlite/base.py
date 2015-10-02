@@ -272,7 +272,7 @@ class Storage(object):
             raise errors.StorageError('storage in readonly mode')
         q = """insert into device_config_data (oid, data, timestamp) values (?, ?, ?)"""
         op = self.db.runOperation
-        return op(q, (oid, data, timestamp))
+        return op(q, (oid, sqlite.Binary(data), timestamp))
 
     def getAllDeviceConfigData(self, oid, only_timestamps = False):
         if only_timestamps:
