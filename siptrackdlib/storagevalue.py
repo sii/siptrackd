@@ -56,6 +56,7 @@ class StorageValue(object):
             self._has_value = True
             self.value = value
         else:
+            self._has_value = False
             self.value = None
 
     def get(self):
