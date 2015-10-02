@@ -77,6 +77,17 @@ class DeviceConfig(treenodes.BaseNode):
     def getAllConfigs(self):
         return self.object_store.storage.getAllDeviceConfigData(self.oid)
 
+    @defer.inlineCallbacks
+    def getStats(self):
+        stats = {'count': 0, 'latest_timestamp': 0, 'latest_size': 0}
+        stats['count'] = yield self.object_store.storage.countDeviceConfigData(self.oid)
+        res = yield self.object_store.storage.getLatestDeviceConfigData(self.oid)
+        if res:
+            data, timestamp = res
+            stats['latest_timestamp'] = timestamp
+            stats['latest_size'] = len(data)
+        defer.returnValue(stats)
+
 class DeviceConfigTemplate(treenodes.BaseNode):
     class_id = 'DCTMPL'
     class_name = 'device config template'

@@ -67,6 +67,13 @@ class DeviceConfigRPC(baserpc.BaseRPC):
                 ret.append([xmlrpclib.Binary(data), timestamp])
         defer.returnValue(ret)
 
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_get_stats(self, session, oid):
+        node = self.getOID(session, oid)
+        ret = yield node.getStats()
+        defer.returnValue(ret)
+
 class DeviceConfigTemplateRPC(baserpc.BaseRPC):
     node_type = 'device config template'
 
