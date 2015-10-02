@@ -112,8 +112,18 @@ class DeviceConfigTemplate(treenodes.BaseNode):
         for attr in self.listChildren(include=['attribute', 'versioned attribute']):
             ret[attr.name] = attr.value
         for attr in self.parent.listChildren(include=['attribute', 'versioned attribute']):
-            ret['parent.%s' % (attr.name)] = attr.value
-            ret['device.%s' % (attr.name)] = attr.value
+            ret['parent_%s' % (attr.name)] = attr.value
+            ret['device_%s' % (attr.name)] = attr.value
+        return ret
+
+    def _encodeKeywords(self, keywords):
+        ret = {}
+        for key, value in keywords.iteritems():
+            if type(key) == unicode:
+                key = key.encode('utf-8')
+            if type(value) == unicode:
+                value = value.encode('utf-8')
+            ret[key] = value
         return ret
 
     @defer.inlineCallbacks
@@ -122,6 +132,7 @@ class DeviceConfigTemplate(treenodes.BaseNode):
         tmpl = Template(tmpl)
         attributes = self._gatherAttributes()
         attributes.update(keywords)
+        attributes = self._encodeKeywords(attributes)
         ret = tmpl.safe_substitute(attributes)
         defer.returnValue(ret)
 
