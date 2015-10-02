@@ -288,6 +288,7 @@ class Storage(object):
         if not res:
             defer.returnValue(None)
         data, timestamp = res[0]
+        data = str(data)
         defer.returnValue((data, timestamp))
 
     @defer.inlineCallbacks
@@ -312,7 +313,7 @@ class Storage(object):
         res = yield self.db.runQuery(q, (oid, timestamp))
         if not res:
             defer.returnValue(None)
-        data = res[0][0]
+        data = str(res[0][0])
         defer.returnValue(data)
 
     def countDeviceConfigData(self, oid):
