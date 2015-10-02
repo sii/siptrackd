@@ -645,7 +645,7 @@ def perform_upgrade(storage):
     @defer.inlineCallbacks
     def run():
         print'Running upgrade.'
-        siptrackdlib.upgrade.perform_upgrade(storage)
+        yield siptrackdlib.upgrade.perform_upgrade(storage)
         print 'Done.'
         reactor.stop()
     reactor.callWhenRunning(run)

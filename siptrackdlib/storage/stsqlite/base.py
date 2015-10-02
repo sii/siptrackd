@@ -118,11 +118,15 @@ class Storage(object):
     def getVersion(self):
         return self._fetchSingle("""select version from version""")
 
+    @defer.inlineCallbacks
     def setVersion(self, version):
-        q = """replace into version (version) values (?)"""
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        return self.db.runOperation(q, (version,))
+        q = """delete from version"""
+        yield self.db.runOperation(q)
+        q = """insert into version (version) values (?)"""
+        yield self.db.runOperation(q, (version,))
+        defer.returnValue(True)
 
     def addOID(self, parent_oid, oid, class_id, txn = None):
         if self.readonly:
@@ -322,15 +326,21 @@ class Storage(object):
 
     @defer.inlineCallbacks
     def _upgrade1to2(self):
+        print 'DB upgrade version 1 -> 2'
         for table in sqltables_1_to_2:
             yield self.db.runOperation(table)
+        yield self.setVersion('2')
 
     @defer.inlineCallbacks
     def upgrade(self):
+        if not os.path.exists(self.dbfile):
+            raise errors.StorageError('Unable to perform db upgrade, can\'t find a dbfile')
+        self.db = adbapi.ConnectionPool('sqlite3', self.dbfile, check_same_thread = False)
         version = yield self.getVersion()
-        if version == 1:
+        version = str(version)
+        if version == '1':
             yield self._upgrade1to2()
-        elif version == 2:
+        elif version == '2':
             pass
         else:
             raise errors.StorageError('unknown storage version %s' % (version))
