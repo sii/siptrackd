@@ -50,8 +50,7 @@ class StorageValue(object):
         # Don't write anything if the Value is None.
         if value is None and not self._write_none:
             return
-        value = self._setValue(value)
-        self.node.storageAction('write_data', {'name': self.name, 'value': value})
+        self.node.storageAction('write_data', {'name': self.name, 'value': self._setValue(value)})
         self.node.setModified()
         if self.cache_value:
             self._has_value = True
@@ -64,9 +63,9 @@ class StorageValue(object):
 
         Load from storage if necessary.
         """
+        # self.value is set to None if nothing exists in storage.
         if self._has_value:
             return self.value
-        # self.value is set to None if nothing exists in storage.
         if self.cache_value:
             self._has_value = True
         value = self.node.object_store.storage.readData(self.oid,
