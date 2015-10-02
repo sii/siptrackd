@@ -276,10 +276,10 @@ class Storage(object):
 
     def getAllDeviceConfigData(self, oid, only_timestamps = False):
         if only_timestamps:
-            q = """select timestamp from device_config_data order by timestamp"""
+            q = """select timestamp from device_config_data where oid = ? order by timestamp"""
         else:
-            q = """select data, timestamp from device_config_data order by timestamp"""
-        return self.db.runQuery(q)
+            q = """select data, timestamp from device_config_data where oid = ? order by timestamp"""
+        return self.db.runQuery(q, (oid,))
 
     @defer.inlineCallbacks
     def getLatestDeviceConfigData(self, oid):
@@ -305,6 +305,15 @@ class Storage(object):
             q = """delete from device_config_data where oid = ?"""
             yield op(q, (oid,))
         defer.returnValue(True)
+
+    @defer.inlineCallbacks
+    def getTimestampDeviceConfigData(self, oid, timestamp):
+        q = """select data from device_config_data where oid = ? and timestamp = ? limit 1"""
+        res = yield self.db.runQuery(q, (oid, timestamp))
+        if not res:
+            defer.returnValue(None)
+        data = res[0][0]
+        defer.returnValue(data)
 
     def countDeviceConfigData(self, oid):
         q = """select count(*) from device_config_data where oid = ?"""

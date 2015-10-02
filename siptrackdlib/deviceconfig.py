@@ -77,6 +77,9 @@ class DeviceConfig(treenodes.BaseNode):
     def getAllConfigs(self):
         return self.object_store.storage.getAllDeviceConfigData(self.oid)
 
+    def getTimestampConfig(self, timestamp):
+        return self.object_store.storage.getTimestampDeviceConfigData(self.oid, int(timestamp))
+
     @defer.inlineCallbacks
     def getStats(self):
         stats = {'count': 0, 'latest_timestamp': 0, 'latest_size': 0}

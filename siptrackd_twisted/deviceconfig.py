@@ -69,6 +69,17 @@ class DeviceConfigRPC(baserpc.BaseRPC):
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
+    def xmlrpc_get_timestamp_config(self, session, oid, timestamp):
+        node = self.getOID(session, oid)
+        ret = yield node.getTimestampConfig(timestamp)
+        if ret is None:
+            ret = False
+        else:
+            ret = xmlrpclib.Binary(ret)
+        defer.returnValue(ret)
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
     def xmlrpc_get_stats(self, session, oid):
         node = self.getOID(session, oid)
         ret = yield node.getStats()
