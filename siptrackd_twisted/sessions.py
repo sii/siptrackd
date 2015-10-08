@@ -44,7 +44,6 @@ class DataIterators(object):
         return cur_data, iter_data['has_data']
 
     def getData(self, i_id):
-        print 'GETDATA', self, i_id
         if not i_id:
             return False
         iter_data = self.iterators.get(i_id)
@@ -55,7 +54,6 @@ class DataIterators(object):
         if not has_data:
             ret['next'] = False
             del self.iterators[i_id]
-        print 'GETDATA 1', ret
         return ret
 
     def threadGetData(self, i_id):
