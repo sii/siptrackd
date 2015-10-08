@@ -39,7 +39,7 @@ class DeviceConfigRPC(baserpc.BaseRPC):
     @helpers.ValidateSession()
     @defer.inlineCallbacks
     def xmlrpc_add_config(self, session, oid, data):
-        if len(data) > 1024*1024*3:
+        if len(data.data) > 1024*1024*3:
             raise siptrackdlib.errors.SiptrackError('config data to large')
         node = self.getOID(session, oid)
         yield node.addConfig(str(data))
