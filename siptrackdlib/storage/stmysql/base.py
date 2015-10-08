@@ -155,7 +155,6 @@ class Storage(object):
         else:
             op = self.db.runOperation
         q = """insert into idmap (parent_oid, oid, class_id) values (%s, %s, %s)"""
-        print 'QQQQQQQQ', q, (parent_oid, oid, class_id)
         return op(q, (parent_oid, oid, class_id))
 
     @defer.inlineCallbacks
