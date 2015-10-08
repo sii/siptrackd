@@ -26,14 +26,15 @@ sqltables = [
         (
             parent_oid varchar(16),
             oid varchar(16) primary key,
-            class_id varchar(16)
+            class_id varchar(64)
         )
         """,
         """
         create table associations
         (
-            self_oid varchar(16) primary key,
-            other_oid varchar(16)
+            self_oid varchar(16),
+            other_oid varchar(16),
+            primary key (self_oid, other_oid)
         )
         """,
         """
@@ -50,7 +51,7 @@ sqltables = [
         create table device_config_data
         (
             oid varchar(16),
-            data blob,
+            data MEDIUMBLOB,
             timestamp integer,
             primary key (oid, timestamp)
         )
@@ -66,7 +67,7 @@ sqltables_1_to_2 = [
         create table device_config_data
         (
             oid varchar(16),
-            data blob,
+            data MEDIUMBLOB,
             timestamp integer,
             UNIQUE (oid, timestamp)
         )
@@ -118,7 +119,6 @@ class Storage(object):
         FROM information_schema.TABLES
         WHERE (TABLE_SCHEMA = %s) AND (TABLE_NAME = %s)"""
         res = yield self._fetchSingle(q, (self.db_data['db'], 'version'))
-        print 'QQQQ', res
         if res == 0:
             defer.returnValue(False)
         defer.returnValue(True)
