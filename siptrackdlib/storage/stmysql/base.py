@@ -24,8 +24,8 @@ sqltables = [
         """
         create table idmap
         (
-            parent_oid varchar(16) primary key,
-            oid varchar(16),
+            parent_oid varchar(16),
+            oid varchar(16) primary key,
             class_id varchar(16)
         )
         """,
@@ -75,12 +75,12 @@ sqltables_1_to_2 = [
 ]
 
 class Storage(object):
-    def __init__(self, dbfile = None, readonly = False):
+    def __init__(self, connection_string = None, readonly = False):
         """Load (or create if it doesn't exist) necessary infrastructure."""
-        if not dbfile:
-            raise errors.StorageError('stsqlite storage requires a dbfile option')
-        self.dbfile = dbfile
-        # The option might be straight from commandline.
+        if not connection_string:
+            raise errors.StorageError('stmysql storage requires a connection string option')
+        self.db_data = self._parseConnectionString(connection_string)
+        # The option might be straight from the command line.
         # Sort of ugly.
         if type(readonly) in [str, unicode]:
             if readonly in ['True', 'true']:
@@ -91,18 +91,37 @@ class Storage(object):
                 raise errors.StorageError('invalid value for "readonly" param: %s' % (readonly))
         self.readonly = readonly
 
+    def _parseConnectionString(self, connection_string):
+        ret = {}
+        try:
+            ret['host'], ret['user'], ret['password'], ret['db'] = connection_string.split(':')
+        except:
+            raise errors.StorageError('invalid connection string, format: host:user:password:db')
+        return ret
+
     @defer.inlineCallbacks
     def initialize(self, version):
-        needs_init = False
-        if not os.path.exists(self.dbfile):
-            needs_init = True
-        self.db = adbapi.ConnectionPool('sqlite3', self.dbfile, check_same_thread = False)
-        if needs_init:
+        self.db = adbapi.ConnectionPool('MySQLdb', host=self.db_data['host'],
+                                       user=self.db_data['user'], passwd=self.db_data['password'],
+                                       db=self.db_data['db'])
+        db_initialized = yield self._checkDBInitialized()
+        if not db_initialized:
             if self.readonly:
                 raise errors.StorageError('storage in readonly mode')
             for table in sqltables:
                 yield self.db.runOperation(table)
             yield self.setVersion(version)
+
+    @defer.inlineCallbacks
+    def _checkDBInitialized(self):
+        q = """SELECT count(*)
+        FROM information_schema.TABLES
+        WHERE (TABLE_SCHEMA = %s) AND (TABLE_NAME = %s)"""
+        res = yield self._fetchSingle(q, (self.db_data['db'], 'version'))
+        print 'QQQQ', res
+        if res == 0:
+            defer.returnValue(False)
+        defer.returnValue(True)
 
     def interact(self, function, *args, **kwargs):
         return self.db.runInteraction(function, *args, **kwargs)
@@ -124,7 +143,7 @@ class Storage(object):
             raise errors.StorageError('storage in readonly mode')
         q = """delete from version"""
         yield self.db.runOperation(q)
-        q = """insert into version (version) values (?)"""
+        q = """insert into version (version) values (%s)"""
         yield self.db.runOperation(q, (version,))
         defer.returnValue(True)
 
@@ -135,7 +154,8 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """insert into idmap (parent_oid, oid, class_id) values (?, ?, ?)"""
+        q = """insert into idmap (parent_oid, oid, class_id) values (%s, %s, %s)"""
+        print 'QQQQQQQQ', q, (parent_oid, oid, class_id)
         return op(q, (parent_oid, oid, class_id))
 
     @defer.inlineCallbacks
@@ -146,11 +166,11 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """delete from idmap where oid = ?"""
+        q = """delete from idmap where oid = %s"""
         yield op(q, (oid,))
-        q = """delete from nodedata where oid = ?"""
+        q = """delete from nodedata where oid = %s"""
         yield op(q, (oid,))
-        q = """delete from associations where self_oid = ?"""
+        q = """delete from associations where self_oid = %s"""
         yield op(q, (oid,))
         defer.returnValue(True)
 
@@ -161,7 +181,7 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """insert into associations (self_oid, other_oid) values (?, ?)"""
+        q = """insert into associations (self_oid, other_oid) values (%s, %s)"""
         return op(q, (self_oid, other_oid))
 
     def disassociate(self, self_oid, other_oid, txn = None):
@@ -171,7 +191,7 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """delete from associations where self_oid = ? and other_oid = ?"""
+        q = """delete from associations where self_oid = %s and other_oid = %s"""
         return op(q, (self_oid, other_oid))
 
     def relocate(self, self_oid, new_parent_oid, txn = None):
@@ -181,7 +201,7 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """update idmap set parent_oid = ? where oid = ?"""
+        q = """update idmap set parent_oid = %s where oid = %s"""
         return op(q, (new_parent_oid, self_oid))
 
     def writeData(self, oid, name, data, txn = None):
@@ -193,9 +213,9 @@ class Storage(object):
             op = self.db.runOperation
         dtype = 'pickle'
         data = pickle.dumps(data)
-        data = sqlite.Binary(data)
+#        data = sqlite.Binary(data)
         qargs = (oid, name, dtype, data)
-        q = """replace into nodedata (oid, name, datatype, data) values (?, ?, ?, ?)"""
+        q = """replace into nodedata (oid, name, datatype, data) values (%s, %s, %s, %s)"""
         return op(q, qargs)
 
     def removeData(self, oid, name):
@@ -205,19 +225,19 @@ class Storage(object):
             op = txn.execute
         else:
             op = self.db.runOperation
-        q = """delete from nodedata where oid=? and name=?"""
+        q = """delete from nodedata where oid=%s and name=%s"""
         return op(q, (oid, name), commit = True, write_lock = True)
 
     @defer.inlineCallbacks
     def OIDExists(self, oid):
-        q = """select oid from idmap where oid = ? limit 1"""
+        q = """select oid from idmap where oid = %s limit 1"""
         res = yield self._fetchSingle(q, (oid,))
         if res is None:
             defer.returnValue(False)
         defer.returnValue(True)
 
     def classIDFromOID(self, oid):
-        q = """select class_id from idmap where oid = ? limit 1"""
+        q = """select class_id from idmap where oid = %s limit 1"""
         return self._fetchSingle(q, (oid,))
 
     def listOIDs(self):
@@ -233,7 +253,7 @@ class Storage(object):
         return self.db.runQuery(q)
 
     def dataExists(self, oid, name):
-        q = """select oid from nodedata where oid=? and name=? limit 1"""
+        q = """select oid from nodedata where oid=%s and name=%s limit 1"""
         res = yield self.db.runQuery(q, (oid, name))
         if res:
             defer.returnValue(True)
@@ -248,7 +268,7 @@ class Storage(object):
 
     @defer.inlineCallbacks
     def readData(self, oid, name):
-        q = """select datatype, data from nodedata where oid = ? and name = ? limit 1"""
+        q = """select datatype, data from nodedata where oid = %s and name = %s limit 1"""
         res = yield self.db.runQuery(q, (oid, name))
         if not res:
             defer.returnValue(None)
@@ -261,8 +281,8 @@ class Storage(object):
         def run(txn):
             data_mapping = {}
             q = """select oid, name, datatype, data from nodedata"""
-            res = txn.execute(q)
-            for oid, name, dtype, data in res:
+            txn.execute(q)
+            for oid, name, dtype, data in txn:
                 data = self._parseReadData(dtype, data)
                 if oid not in data_mapping:
                     data_mapping[oid] = {}
@@ -274,20 +294,21 @@ class Storage(object):
     def addDeviceConfigData(self, oid, data, timestamp):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        q = """insert into device_config_data (oid, data, timestamp) values (?, ?, ?)"""
+        q = """insert into device_config_data (oid, data, timestamp) values (%s, %s, %s)"""
         op = self.db.runOperation
-        return op(q, (oid, sqlite.Binary(data), timestamp))
+        data = sqlite.Binary(data)
+        return op(q, (oid, data, timestamp))
 
     def getAllDeviceConfigData(self, oid, only_timestamps = False):
         if only_timestamps:
-            q = """select timestamp from device_config_data where oid = ? order by timestamp"""
+            q = """select timestamp from device_config_data where oid = %s order by timestamp"""
         else:
-            q = """select data, timestamp from device_config_data where oid = ? order by timestamp"""
+            q = """select data, timestamp from device_config_data where oid = %s order by timestamp"""
         return self.db.runQuery(q, (oid,))
 
     @defer.inlineCallbacks
     def getLatestDeviceConfigData(self, oid):
-        q = """select data, timestamp from device_config_data where oid = ? order by timestamp desc limit 1"""
+        q = """select data, timestamp from device_config_data where oid = %s order by timestamp desc limit 1"""
         res = yield self.db.runQuery(q, (oid,))
         if not res:
             defer.returnValue(None)
@@ -304,16 +325,16 @@ class Storage(object):
         else:
             op = self.db.runOperation
         if timestamp is not None:
-            q = """delete from device_config_data where oid = ? and timestamp = ?"""
+            q = """delete from device_config_data where oid = %s and timestamp = %s"""
             yield op(q, (oid, timestamp))
         else:
-            q = """delete from device_config_data where oid = ?"""
+            q = """delete from device_config_data where oid = %s"""
             yield op(q, (oid,))
         defer.returnValue(True)
 
     @defer.inlineCallbacks
     def getTimestampDeviceConfigData(self, oid, timestamp):
-        q = """select data from device_config_data where oid = ? and timestamp = ? limit 1"""
+        q = """select data from device_config_data where oid = %s and timestamp = %s limit 1"""
         res = yield self.db.runQuery(q, (oid, timestamp))
         if not res:
             defer.returnValue(None)
@@ -321,7 +342,7 @@ class Storage(object):
         defer.returnValue(data)
 
     def countDeviceConfigData(self, oid):
-        q = """select count(*) from device_config_data where oid = ?"""
+        q = """select count(*) from device_config_data where oid = %s"""
         return self._fetchSingle(q, (oid,))
 
     @defer.inlineCallbacks
@@ -333,9 +354,9 @@ class Storage(object):
 
     @defer.inlineCallbacks
     def upgrade(self):
-        if not os.path.exists(self.dbfile):
-            raise errors.StorageError('Unable to perform db upgrade, can\'t find a dbfile')
-        self.db = adbapi.ConnectionPool('sqlite3', self.dbfile, check_same_thread = False)
+        self.db = adbapi.ConnectionPool('MySQLdb', host=self.db_data['host'],
+                                       user=self.db_data['user'], passwd=self.db_data['password'],
+                                       db=self.db_data['db'])
         version = yield self.getVersion()
         version = str(version)
         if version == '1':
