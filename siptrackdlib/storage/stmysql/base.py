@@ -212,7 +212,6 @@ class Storage(object):
             op = self.db.runOperation
         dtype = 'pickle'
         data = pickle.dumps(data)
-#        data = sqlite.Binary(data)
         qargs = (oid, name, dtype, data)
         q = """replace into nodedata (oid, name, datatype, data) values (%s, %s, %s, %s)"""
         return op(q, qargs)
@@ -295,7 +294,6 @@ class Storage(object):
             raise errors.StorageError('storage in readonly mode')
         q = """insert into device_config_data (oid, data, timestamp) values (%s, %s, %s)"""
         op = self.db.runOperation
-        data = sqlite.Binary(data)
         return op(q, (oid, data, timestamp))
 
     def getAllDeviceConfigData(self, oid, only_timestamps = False):
