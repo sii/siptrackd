@@ -383,7 +383,13 @@ class Tree(object):
         """
         for oid, associated_oid in associations:
             branch = self.getBranch(oid)
+            if not branch:
+                log.msg('WARNING: unable to find oid %s (-> %s) when loading associations' % (oid, associated_oid))
+                continue
             associated_branch = self.getBranch(associated_oid)
+            if not associated_branch:
+                log.msg('WARNING: unable to find associated oid %s (-> %s) when loading associations' % (associated_oid, oid))
+                continue
             branch.associate(associated_branch)
 
     def load_data_callback(self, branch):
