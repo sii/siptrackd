@@ -35,7 +35,7 @@ class AttributeBase(treenodes.BaseNode):
             value = self.value
             if type(value) == str:
                 try:
-                    value = value.decode('utf-8')
+                    value = value.decode('utf-8').lower()
                 except:
                     value = u''
             values = {name: value}
