@@ -75,20 +75,9 @@ sqltables_1_to_2 = [
 ]
 
 class Storage(object):
-    def __init__(self, dbfile = None, readonly = False):
+    def __init__(self, config = None, readonly = False):
         """Load (or create if it doesn't exist) necessary infrastructure."""
-        if not dbfile:
-            raise errors.StorageError('stsqlite storage requires a dbfile option')
-        self.dbfile = dbfile
-        # The option might be straight from commandline.
-        # Sort of ugly.
-        if type(readonly) in [str, unicode]:
-            if readonly in ['True', 'true']:
-                readonly = True
-            elif readonly in ['False', 'false']:
-                readonly = False
-            else:
-                raise errors.StorageError('invalid value for "readonly" param: %s' % (readonly))
+        self.dbfile = config.get('sqlite', 'filename')
         self.readonly = readonly
 
     @defer.inlineCallbacks

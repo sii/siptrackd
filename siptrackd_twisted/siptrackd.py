@@ -3,7 +3,8 @@ import os
 import time
 import pprint
 import traceback
-from optparse import OptionParser
+from argparse import ArgumentParser, FileType
+from ConfigParser import RawConfigParser
 
 from twisted.internet import threads
 from twisted.application import internet
@@ -60,7 +61,7 @@ DEFAULT_SSL_LISTEN_PORT = 9243
 # if they are.
 class SiptrackdRPC(baserpc.BaseRPC):
     """A basic twisted xmlrpc server class.
-    
+
     Each method prefixed with xmlrpc_ is exported as an xmlrpc function.
     Most of the methods are wrapped in the 'error_handler' function that
     takes basic SiptrackError exceptions and returns xmlrpc Faults with
@@ -667,84 +668,142 @@ def daemonize():
     os.close(null)
 
 def main(argv):
-    usage = 'usage: %prog [...]'
-    parser = OptionParser(usage = usage)
-    parser.add_option('-p', '--port', dest = 'listen_port',
-            help = 'port for cleartext connections, default 9242, set to 0 for none')
-    parser.add_option('', '--ssl-port', dest = 'ssl_port',
-            help = 'port for ssl connections, default 9243, set to 0 for none')
-    parser.add_option('-d', '--daemonize', dest = 'daemon',
-            action='store_true', help = 'daemonize siptrackd')
-    parser.add_option('', '--ssl-private-key', dest = 'ssl_private_key',
-            help = 'path to optional ssl private key file')
-    parser.add_option('', '--ssl-certificate', dest = 'ssl_certificate',
-            help = 'path to optional ssl certificate (including cert chain)')
-    parser.add_option('-s', '--storage-options', dest = 'storage_options',
-            help = 'options to pass to the selected storage backend')
-    parser.add_option('-b', '--storage-backend', dest = 'storage_backend',
-            help = 'storage backend to use')
-    parser.add_option('', '--list-storage-backends', dest = 'list_storage_backends',
-            action='store_true',
-            help = 'list available storage backends')
-    parser.add_option('', '--syslog', dest = 'log_syslog',
-            action='store_true', help = 'log to syslog')
-    parser.add_option('-l', '--logfile', dest = 'log_file',
-            help = 'log to a file, - for stdout')
-    parser.add_option('', '--list-user-managers', dest='list_user_managers',
-            action='store_true',
-            help = 'list existing user managers and exit')
-    parser.add_option('', '--reset-user-manager', dest='reset_user_manager',
-            action='store_true',
-            help = 'create a new local user manager and set it as active')
-    parser.add_option('', '--upgrade', dest='upgrade',
-            action='store_true',
-            help = 'upgrade siptrackd backend storage')
-    parser.add_option('', '--debug-logging', dest = 'debug_logging',
-            action='store_true',
-            help = 'turn on debug logging')
-    parser.add_option('', '--readonly', dest = 'readonly',
-            action='store_true', help = 'readonly mode')
-    parser.add_option('', '--reload-interval', dest = 'reload_interval',
-            help = 'Interval in which to reload the object store (s)')
-    parser.add_option('', '--searcher', dest = 'searcher',
-            help = 'Searcher to use, one of: memory, whoosh, default: memory.')
-    parser.add_option('', '--searcher-args', dest = 'searcher_args',
-            help = 'Searcher arguments, (whoosh index path).')
-    (options, args) = parser.parse_args()
+    config = RawConfigParser()
+    parser = ArgumentParser()
+    parser.add_argument(
+        '-p',
+        '--port',
+        dest='listen_port',
+        default=9242,
+        help='port for cleartext connections, set to 0 for none (default 9242)'
+    )
+    parser.add_argument(
+        '--ssl-port',
+        dest='ssl_port',
+        default=9243,
+        help='port for ssl connections, set to 0 for none (default 9243)'
+    )
+    parser.add_argument(
+        '-d',
+        '--daemonize',
+        dest='daemon',
+        action='store_true',
+        help='daemonize siptrackd'
+    )
+    parser.add_argument(
+        '--ssl-private-key',
+        dest='ssl_private_key',
+        help='path to optional ssl private key file'
+    )
+    parser.add_argument(
+        '--ssl-certificate',
+        dest='ssl_certificate',
+        help='path to optional ssl certificate (including cert chain)'
+    )
+    parser.add_argument(
+        '-s', '--storage-options',
+        type=FileType('r'),
+        dest='storage_options',
+        required=True,
+        metavar='FILE',
+        help='configuration file with storage options'
+    )
+    parser.add_argument(
+        '-b',
+        '--storage-backend',
+        dest='storage_backend',
+        required=True,
+        help='storage backend to use'
+    )
+    parser.add_argument(
+        '--list-storage-backends',
+        dest='list_storage_backends',
+        action='store_true',
+        help='list available storage backends'
+    )
+    parser.add_argument(
+        '--syslog',
+        dest='log_syslog',
+        action='store_true',
+        help='log to syslog'
+    )
+    parser.add_argument(
+        '-l',
+        '--logfile',
+        dest='log_file',
+        help='log to a file, - for stdout'
+    )
+    parser.add_argument(
+        '--list-user-managers',
+        dest='list_user_managers',
+        action='store_true',
+        help='list existing user managers and exit'
+    )
+    parser.add_argument(
+        '--reset-user-manager',
+        dest='reset_user_manager',
+        action='store_true',
+        help='create a new local user manager and set it as active'
+    )
+    parser.add_argument(
+        '--upgrade',
+        dest='upgrade',
+        action='store_true',
+        help='upgrade siptrackd backend storage'
+    )
+    parser.add_argument(
+        '--debug-logging',
+        dest='debug_logging',
+        action='store_true',
+        help='turn on debug logging'
+    )
+    parser.add_argument(
+        '--readonly',
+        dest='readonly',
+        action='store_true',
+        help='readonly mode'
+    )
+    parser.add_argument(
+        '--reload-interval',
+        dest='reload_interval',
+        help='Interval in which to reload the object store (s)'
+    )
+    parser.add_argument(
+        '--searcher',
+        dest='searcher',
+        help='Searcher to use, one of: memory, whoosh, default: memory.'
+    )
+    parser.add_argument(
+        '--searcher-args',
+        dest='searcher_args',
+        help='Searcher arguments, (whoosh index path).'
+    )
+    args = parser.parse_args()
 
-    if len(args) != 0:
-        parser.print_help()
-        return 1
-
-    if options.list_storage_backends:
+    if args.list_storage_backends:
         for backend in siptrackdlib.storage.list_backends():
             print backend
         return 1
 
-    if not options.storage_backend:
-        print 'ERROR: no storage backend selected, try --list-storage-backends'
-        parser.print_help()
-        return 1
-
-    if not options.listen_port:
-        options.listen_port = DEFAULT_LISTEN_PORT
-    elif options.listen_port == '0':
-        options.listen_port = None
+    if not args.listen_port:
+        args.listen_port = DEFAULT_LISTEN_PORT
+    elif args.listen_port == '0':
+        args.listen_port = None
     else:
         try:
-            options.listen_port = int(options.listen_port)
+            args.listen_port = int(args.listen_port)
         except:
             print 'ERROR: invalid listen port'
             parser.print_help()
             return 1
 
-    if not options.ssl_port:
-        options.ssl_port = DEFAULT_SSL_LISTEN_PORT
-    elif options.ssl_port == '0':
-        options.ssl_port = None
+    if not args.ssl_port:
+        args.ssl_port = DEFAULT_SSL_LISTEN_PORT
+    elif args.ssl_port == '0':
+        args.ssl_port = None
     else:
         try:
-            options.ssl_port = int(options.ssl_port)
+            args.ssl_port = int(args.ssl_port)
         except:
             print 'ERROR: invalid ssl port'
             parser.print_help()
@@ -755,65 +814,74 @@ def main(argv):
         print 'Is PyOpenSSL missing?'
         return 1
 
-    if not options.ssl_private_key or \
-            not os.path.isfile(options.ssl_private_key):
-        options.ssl_port = None
-    if not options.ssl_certificate or \
-            not os.path.isfile(options.ssl_certificate):
-        options.ssl_port = None
+    if not args.ssl_private_key or \
+            not os.path.isfile(args.ssl_private_key):
+        args.ssl_port = None
+    if not args.ssl_certificate or \
+            not os.path.isfile(args.ssl_certificate):
+        args.ssl_port = None
 
-    if options.reload_interval:
+    if args.reload_interval:
         try:
-            options.reload_interval = int(options.reload_interval)
+            args.reload_interval = int(args.reload_interval)
         except Exception, e:
-            print 'Invalid value for reload_interval: %s' % (options.reload_interval)
+            print 'Invalid value for reload_interval: %s' % (args.reload_interval)
             return 1
 
-    storage_args = []
     storage_kwargs = {}
-    if options.storage_options:
-        storage_args = options.storage_options.split()
-    if options.readonly:
-        storage_kwargs = {'readonly': True}
+    storage_kwargs = {'readonly': args.readonly}
+    storage_config = RawConfigParser()
+    storage_config.readfp(args.storage_options)
     try:
         storage = siptrackdlib.storage.load(
-                options.storage_backend, *storage_args, **storage_kwargs)
+            args.storage_backend,
+            storage_config,
+            **storage_kwargs
+        )
     except siptrackdlib.errors.StorageError, e:
         print 'ERROR:', e
         parser.print_help()
         return 1
 
-    if options.list_user_managers:
+    if args.list_user_managers:
         list_user_managers(storage)
         return 0
-    if options.reset_user_manager:
+    if args.reset_user_manager:
         reset_user_manager(storage)
         return 0
-    if options.upgrade:
+    if args.upgrade:
         perform_upgrade(storage)
         return 0
 
-    if not log.logger.setup(options.daemon, options.log_syslog, options.log_file,
-            options.debug_logging):
+    try:
+        log.logger.setup(
+            args.daemon,
+            args.log_syslog,
+            args.log_file,
+            args.debug_logging
+        )
+    except Exception as e:
+        print str(e)
         parser.print_help()
-        return 1
+        sys.exit(1)
+
     siptrackdlib.log.set_logger(log.logger)
 
-    if options.searcher:
-        if options.searcher_args:
-            searcher_args = options.searcher_args.split()
+    if args.searcher:
+        if args.searcher_args:
+            searcher_args = args.searcher_args.split()
         else:
             searcher_args = []
-        searcher = siptrackdlib.search.get_searcher(options.searcher, *searcher_args)
+        searcher = siptrackdlib.search.get_searcher(args.searcher, *searcher_args)
     else:
         searcher = siptrackdlib.search.get_searcher('memory')
 
-    if options.daemon:
+    if args.daemon:
         daemonize()
 
     try:
-        return run_siptrackd_twisted(options.listen_port, options.ssl_port,
-                options.ssl_private_key, options.ssl_certificate, storage, options.reload_interval,
+        return run_siptrackd_twisted(args.listen_port, args.ssl_port,
+                args.ssl_private_key, args.ssl_certificate, storage, args.reload_interval,
                 searcher)
     except siptrackdlib.errors.SiptrackError, e:
         print 'ERROR:', e

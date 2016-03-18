@@ -76,35 +76,21 @@ sqltables_1_to_2 = [
 ]
 
 class Storage(object):
-    def __init__(self, connection_string = None, readonly = False):
+    def __init__(self, config = None, readonly = False):
         """Load (or create if it doesn't exist) necessary infrastructure."""
-        if not connection_string:
-            raise errors.StorageError('stmysql storage requires a connection string option')
-        self.db_data = self._parseConnectionString(connection_string)
-        # The option might be straight from the command line.
-        # Sort of ugly.
-        if type(readonly) in [str, unicode]:
-            if readonly in ['True', 'true']:
-                readonly = True
-            elif readonly in ['False', 'false']:
-                readonly = False
-            else:
-                raise errors.StorageError('invalid value for "readonly" param: %s' % (readonly))
         self.readonly = readonly
+        self.db_config = config
 
-    def _parseConnectionString(self, connection_string):
-        ret = {}
-        try:
-            ret['host'], ret['user'], ret['password'], ret['db'] = connection_string.split(':')
-        except:
-            raise errors.StorageError('invalid connection string, format: host:user:password:db')
-        return ret
 
     @defer.inlineCallbacks
     def initialize(self, version):
-        self.db = adbapi.ConnectionPool('MySQLdb', host=self.db_data['host'],
-                                       user=self.db_data['user'], passwd=self.db_data['password'],
-                                       db=self.db_data['db'])
+        self.db = adbapi.ConnectionPool(
+            'MySQLdb',
+            host=self.db_config.get('mysql', 'hostname'),
+            user=self.db_config.get('mysql', 'username'),
+            passwd=self.db_config.get('mysql', 'password'),
+            db=self.db_config.get('mysql', 'dbname')
+        )
         db_initialized = yield self._checkDBInitialized()
         if not db_initialized:
             if self.readonly:
@@ -118,7 +104,10 @@ class Storage(object):
         q = """SELECT count(*)
         FROM information_schema.TABLES
         WHERE (TABLE_SCHEMA = %s) AND (TABLE_NAME = %s)"""
-        res = yield self._fetchSingle(q, (self.db_data['db'], 'version'))
+        res = yield self._fetchSingle(
+            q,
+            (self.db_config.get('mysql', 'dbname'), 'version')
+        )
         if res == 0:
             defer.returnValue(False)
         defer.returnValue(True)
