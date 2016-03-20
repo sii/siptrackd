@@ -1,5 +1,6 @@
 import sys
 from twisted.python import log, syslog, logfile
+from siptrackdlib.errors import SiptrackError
 
 class Logger(object):
     def __init__(self):
@@ -33,15 +34,13 @@ class Logger(object):
         elif log_file:
             if log_file == '-':
                 if daemon:
-                    print 'ERROR: daemons can\'t log to stdout.'
-                    return False
+                    raise SiptrackError('Daemons can\'t log to stdout')
                 log_fd = sys.stdout
             else:
                 log_fd = logfile.LogFile.fromFullPath(log_file)
             observer = log.FileLogObserver(log_fd).emit
         else:
-            print 'ERROR: no logging method selected.'
-            return False
+            raise SiptrackError('No logging method selected')
         log.startLoggingWithObserver(observer)
         sys.stdout.flush()
         self.debug_logging = debug
