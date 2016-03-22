@@ -1,0 +1,7 @@
+Twisted
+pyOpenSSL
+python-ldap
+Whoosh
+pycrypto
+MySQL-python
+service_identity
