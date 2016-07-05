@@ -98,6 +98,7 @@ class Storage(object):
             for table in sqltables:
                 yield self.db.runOperation(table)
             yield self.setVersion(version)
+        self._keepalive()
 
     @defer.inlineCallbacks
     def _checkDBInitialized(self):
@@ -352,3 +353,9 @@ class Storage(object):
         else:
             raise errors.StorageError('unknown storage version %s' % (version))
         defer.returnValue(True)
+
+    @defer.inlineCallbacks
+    def _keepalive(self):
+        """Simple keepalive loop for the db."""
+        res = yield self.db.runQuery('''select 1''')
+        reactor.callLater(300, self._keepalive)
