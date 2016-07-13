@@ -299,40 +299,40 @@ class ObjectStore(object):
         else:
             nodes = list(orig_nodes)
         # This happens in a seperate thread.
-        def commit(txn):
+        def db_commit(txn, commit_data):
             start = time.time()
-            print 'STARTING STORAGE COMMIT', start, len(nodes)
-            while nodes:
-                node = nodes.pop(0)
+            print 'STARTING STORAGE COMMIT', start, len(commit_data)
+            for node, actions in commit_data:
+                for action in actions:
+                    args = action.get('args')
+                    if action['action'] == 'create_node':
+                        parent_oid = 'ROOT'
+                        parent = node.parent
+                        if parent:
+                            parent_oid = parent.oid
+                        self.storage.addOID(parent_oid, node.oid, node.class_id, txn)
+                    elif action['action'] == 'remove_node':
+                        self.storage.removeOID(node.oid, txn)
+                    elif action['action'] == 'relocate':
+                        self.storage.relocate(node.oid, node.branch.parent.oid, txn)
+                    elif action['action'] == 'associate':
+                        self.storage.associate(node.oid, args['other'], txn)
+                    elif action['action'] == 'disassociate':
+                        self.storage.disassociate(node.oid, args['other'], txn)
+                    elif action['action'] == 'write_data':
+                        self.storage.writeData(node.oid, args['name'], args['value'], txn)
+                    elif action['action'] == 'affecting_node':
+                        nodes.append(args['node'])
+            print 'STORAGE COMMIT DONE', start, time.time()-start
+        def get_commit_data(nodes):
+            data = []
+            for node in nodes:
                 if node._storage_actions:
                     actions = node._storage_actions
                     node._storage_actions = []
-                    for action in actions:
-#                        print 'COMMIT ACTION', node, action
-                        args = action.get('args')
-                        if action['action'] == 'create_node':
-                            parent_oid = 'ROOT'
-                            parent = node.parent
-                            if parent:
-                                parent_oid = parent.oid
-                            self.storage.addOID(parent_oid, node.oid, node.class_id, txn)
-                        elif action['action'] == 'remove_node':
-                            self.storage.removeOID(node.oid, txn)
-                        elif action['action'] == 'relocate':
-                            self.storage.relocate(node.oid, node.branch.parent.oid, txn)
-                        elif action['action'] == 'associate':
-                            self.storage.associate(node.oid, args['other'], txn)
-                        elif action['action'] == 'disassociate':
-                            self.storage.disassociate(node.oid, args['other'], txn)
-                        elif action['action'] == 'write_data':
-                            self.storage.writeData(node.oid, args['name'], args['value'], txn)
-                        elif action['action'] == 'affecting_node':
-                            nodes.append(args['node'])
-            print 'STORAGE COMMIT DONE', start, time.time()-start
-        st_d = self.storage.interact(commit)
-        se_d = self.searcher.commit(orig_nodes)
+                    data.append((node, actions))
+            return data
+        st_d = self.storage.interact(db_commit, get_commit_data(nodes))
         yield st_d
-        # Don't wait for the search commit to finish.
-        # It's running in a seperate thread anyway.
-#        yield se_d
+        se_d = self.searcher.commit(orig_nodes)
         defer.returnValue(True)

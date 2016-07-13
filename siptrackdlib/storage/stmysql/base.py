@@ -3,9 +3,12 @@ import codecs
 import MySQLdb
 import struct
 import threading
+import time
+import sys
 
 from twisted.enterprise import adbapi
 from twisted.internet import defer
+from twisted.internet import reactor
 
 try:
     import cPickle as pickle
@@ -89,16 +92,17 @@ class Storage(object):
             host=self.db_config.get('mysql', 'hostname'),
             user=self.db_config.get('mysql', 'username'),
             passwd=self.db_config.get('mysql', 'password'),
-            db=self.db_config.get('mysql', 'dbname')
+            db=self.db_config.get('mysql', 'dbname'),
+            cp_reconnect=True,
         )
         db_initialized = yield self._checkDBInitialized()
         if not db_initialized:
             if self.readonly:
                 raise errors.StorageError('storage in readonly mode')
             for table in sqltables:
-                yield self.db.runOperation(table)
+                yield self.runOperation(table)
             yield self.setVersion(version)
-        self._keepalive()
+#        self._keepalive()
 
     @defer.inlineCallbacks
     def _checkDBInitialized(self):
@@ -113,12 +117,9 @@ class Storage(object):
             defer.returnValue(False)
         defer.returnValue(True)
 
-    def interact(self, function, *args, **kwargs):
-        return self.db.runInteraction(function, *args, **kwargs)
-
     @defer.inlineCallbacks
     def _fetchSingle(self, *args, **kwargs):
-        res = yield self.db.runQuery(*args, **kwargs)
+        res = yield self.runQuery(*args, **kwargs)
         ret = None
         if len(res) == 1:
             ret = res[0][0]
@@ -132,89 +133,96 @@ class Storage(object):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
         q = """delete from version"""
-        yield self.db.runOperation(q)
+        yield self.runOperation(q)
         q = """insert into version (version) values (%s)"""
-        yield self.db.runOperation(q, (version,))
+        yield self.runOperation(q, (version,))
         defer.returnValue(True)
 
     def addOID(self, parent_oid, oid, class_id, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        if txn:
-            op = txn.execute
-        else:
-            op = self.db.runOperation
         q = """insert into idmap (parent_oid, oid, class_id) values (%s, %s, %s)"""
-        return op(q, (parent_oid, oid, class_id))
+        if txn:
+            return self.txndbrun(txn, q, (parent_oid, oid, class_id))
+        else:
+            return self.runOperation(q, (parent_oid, oid, class_id))
 
     @defer.inlineCallbacks
     def removeOID(self, oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
         if txn:
-            op = txn.execute
+            ret = self._txnRemoveOID(txn, oid)
         else:
-            op = self.db.runOperation
+            ret = yield self._removeOID(oid)
+        defer.returnValue(ret)
+
+    def _txnRemoveOID(self, txn, oid):
         q = """delete from idmap where oid = %s"""
-        yield op(q, (oid,))
+        self.txndbrun(txn, q, (oid,))
         q = """delete from nodedata where oid = %s"""
-        yield op(q, (oid,))
+        self.txndbrun(txn, q, (oid,))
         q = """delete from associations where self_oid = %s"""
-        yield op(q, (oid,))
+        self.txndbrun(txn, q, (oid,))
+        return True
+
+    @defer.inlineCallbacks
+    def _removeOID(self, oid):
+        q = """delete from idmap where oid = %s"""
+        yield self.runOperation(q, (oid,))
+        q = """delete from nodedata where oid = %s"""
+        yield self.runOperation(q, (oid,))
+        q = """delete from associations where self_oid = %s"""
+        yield self.runOperation(q, (oid,))
         defer.returnValue(True)
 
     def associate(self, self_oid, other_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        if txn:
-            op = txn.execute
-        else:
-            op = self.db.runOperation
         q = """insert into associations (self_oid, other_oid) values (%s, %s)"""
-        return op(q, (self_oid, other_oid))
+        if txn:
+            return self.txndbrun(q, (self_oid, other_oid))
+        else:
+            return self.runOperation(q, (self_oid, other_oid))
 
     def disassociate(self, self_oid, other_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        if txn:
-            op = txn.execute
-        else:
-            op = self.db.runOperation
         q = """delete from associations where self_oid = %s and other_oid = %s"""
-        return op(q, (self_oid, other_oid))
+        if txn:
+            return self.txndbrun(q, (self_oid, other_oid))
+        else:
+            return self.runOperation(q, (self_oid, other_oid))
 
     def relocate(self, self_oid, new_parent_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        if txn:
-            op = txn.execute
-        else:
-            op = self.db.runOperation
         q = """update idmap set parent_oid = %s where oid = %s"""
-        return op(q, (new_parent_oid, self_oid))
+        if txn:
+            return self.txndbrun(q, (new_parent_oid, self_oid))
+        else:
+            return self.runOperation(q, (new_parent_oid, self_oid))
 
     def writeData(self, oid, name, data, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        if txn:
-            op = txn.execute
-        else:
-            op = self.db.runOperation
         dtype = 'pickle'
         data = pickle.dumps(data)
         qargs = (oid, name, dtype, data)
         q = """replace into nodedata (oid, name, datatype, data) values (%s, %s, %s, %s)"""
-        return op(q, qargs)
+        if txn:
+            return self.txndbrun(txn, q, qargs)
+        else:
+            return self.runOperation(q, qargs)
 
     def removeData(self, oid, name):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
-        if txn:
-            op = txn.execute
-        else:
-            op = self.db.runOperation
         q = """delete from nodedata where oid=%s and name=%s"""
-        return op(q, (oid, name), commit = True, write_lock = True)
+        if txn:
+            return self.txndbrun(txn, q, (oid, name), commit = True, write_lock = True)
+        else:
+            return self.runOperation(q, (oid, name), commit = True, write_lock = True)
 
     @defer.inlineCallbacks
     def OIDExists(self, oid):
@@ -230,19 +238,19 @@ class Storage(object):
 
     def listOIDs(self):
         q = """select parent_oid, oid from idmap order by parent_oid"""
-        return self.db.runQuery(q)
+        return self.runQuery(q)
 
     def listOIDClasses(self):
         q = """select oid, class_id from idmap"""
-        return self.db.runQuery(q)
+        return self.runQuery(q)
 
     def listAssociations(self):
         q = """select self_oid, other_oid from associations"""
-        return self.db.runQuery(q)
+        return self.runQuery(q)
 
     def dataExists(self, oid, name):
         q = """select oid from nodedata where oid=%s and name=%s limit 1"""
-        res = yield self.db.runQuery(q, (oid, name))
+        res = yield self.runQuery(q, (oid, name))
         if res:
             defer.returnValue(True)
         defer.returnValue(False)
@@ -257,7 +265,7 @@ class Storage(object):
     @defer.inlineCallbacks
     def readData(self, oid, name):
         q = """select datatype, data from nodedata where oid = %s and name = %s limit 1"""
-        res = yield self.db.runQuery(q, (oid, name))
+        res = yield self.runQuery(q, (oid, name))
         if not res:
             defer.returnValue(None)
         dtype, data = res[0]
@@ -276,27 +284,26 @@ class Storage(object):
                     data_mapping[oid] = {}
                 data_mapping[oid][name] = data
             return data_mapping
-        ret = yield self.db.runInteraction(run)
+        ret = yield self.runInteraction(run)
         defer.returnValue(ret)
 
     def addDeviceConfigData(self, oid, data, timestamp):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
         q = """insert into device_config_data (oid, data, timestamp) values (%s, %s, %s)"""
-        op = self.db.runOperation
-        return op(q, (oid, data, timestamp))
+        return self.runOperation(q, (oid, data, timestamp))
 
     def getAllDeviceConfigData(self, oid, only_timestamps = False):
         if only_timestamps:
             q = """select timestamp from device_config_data where oid = %s order by timestamp"""
         else:
             q = """select data, timestamp from device_config_data where oid = %s order by timestamp"""
-        return self.db.runQuery(q, (oid,))
+        return self.runQuery(q, (oid,))
 
     @defer.inlineCallbacks
     def getLatestDeviceConfigData(self, oid):
         q = """select data, timestamp from device_config_data where oid = %s order by timestamp desc limit 1"""
-        res = yield self.db.runQuery(q, (oid,))
+        res = yield self.runQuery(q, (oid,))
         if not res:
             defer.returnValue(None)
         data, timestamp = res[0]
@@ -307,22 +314,28 @@ class Storage(object):
     def removeDeviceConfigData(self, oid, timestamp = None, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
+        ret = None
         if txn:
-            op = txn.execute
+            if timestamp is not None:
+                q = """delete from device_config_data where oid = %s and timestamp = %s"""
+                ret = self.txndbrun(txn, op, q, (oid, timestamp))
+            else:
+                q = """delete from device_config_data where oid = %s"""
+                ret = self.txndbrun(txn, op, q, (oid,))
         else:
             op = self.db.runOperation
-        if timestamp is not None:
-            q = """delete from device_config_data where oid = %s and timestamp = %s"""
-            yield op(q, (oid, timestamp))
-        else:
-            q = """delete from device_config_data where oid = %s"""
-            yield op(q, (oid,))
-        defer.returnValue(True)
+            if timestamp is not None:
+                q = """delete from device_config_data where oid = %s and timestamp = %s"""
+                ret = self.runOperation(q, (oid, timestamp))
+            else:
+                q = """delete from device_config_data where oid = %s"""
+                ret = self.runOperation(q, (oid,))
+        return ret
 
     @defer.inlineCallbacks
     def getTimestampDeviceConfigData(self, oid, timestamp):
         q = """select data from device_config_data where oid = %s and timestamp = %s limit 1"""
-        res = yield self.db.runQuery(q, (oid, timestamp))
+        res = yield self.runQuery(q, (oid, timestamp))
         if not res:
             defer.returnValue(None)
         data = str(res[0][0])
@@ -336,7 +349,7 @@ class Storage(object):
     def _upgrade1to2(self):
         print 'DB upgrade version 1 -> 2'
         for table in sqltables_1_to_2:
-            yield self.db.runOperation(table)
+            yield self.runOperation(table)
         yield self.setVersion('2')
 
     @defer.inlineCallbacks
@@ -357,5 +370,100 @@ class Storage(object):
     @defer.inlineCallbacks
     def _keepalive(self):
         """Simple keepalive loop for the db."""
-        res = yield self.db.runQuery('''select 1''')
-        reactor.callLater(300, self._keepalive)
+        print('Keepalive')
+        reactor.callLater(30, self._keepalive)
+        res = yield self.runQuery('''select 1''')
+
+    def runQuery(self, *args, **kwargs):
+        return self.dbrun(self.db.runQuery, *args, **kwargs)
+
+    def runOperation(self, *args, **kwargs):
+        return self.dbrun(self.db.runOperation, *args, **kwargs)
+
+    def _dSleep(self, length, deferred=None):
+        """A twisted deferred sleep.
+
+        Can be called with a yield in a inlineCallbacks wrapped function.
+        """
+        if deferred:
+            deferred.callback(True)
+            ret = True
+        else:
+            ret = defer.Deferred()
+            reactor.callLater(length, self._dSleep, length, ret)
+        return ret
+
+    @defer.inlineCallbacks
+    def interact(self, function, *args, **kwargs):
+        ret = None
+        retries = 10
+        while True:
+            try:
+                ret = yield self.db.runInteraction(function, *args, **kwargs)
+            except (adbapi.ConnectionLost, MySQLdb.OperationalError) as e:
+                print('Storage DB access failed, restarting transaction: %s' % e)
+                if retries < 1:
+                    print(e)
+                    print('Storage actions are failing, shutting down')
+                    reactor.stop()
+                    sys.exit(1)
+            except Exception as e:
+                print(e)
+                print('Storage actions are failing, shutting down')
+                reactor.stop()
+                sys.exit(1)
+            else:
+                break
+            retries -= 1
+            yield self._dSleep(1)
+        defer.returnValue(ret)
+    runInteraction = interact
+
+    @defer.inlineCallbacks
+    def dbrun(self, function, *args, **kwargs):
+        ret = None
+        retries = 10
+        while True:
+            try:
+#                print('DBRUN', args, kwargs)
+                ret = yield function(*args, **kwargs)
+            except (adbapi.ConnectionLost, MySQLdb.OperationalError) as e:
+                if retries < 1:
+                    print(e)
+                    print('Storage actions are failing, shutting down')
+                    reactor.stop()
+                    sys.exit(1)
+            except Exception as e:
+                print(e)
+                print('Storage actions are failing, shutting down')
+                reactor.stop()
+                sys.exit(1)
+            else:
+                break
+            retries -= 1
+            yield self._dSleep(1)
+        defer.returnValue(ret)
+
+    def txndbrun(self, txn, *args, **kwargs):
+        ret = None
+        retries = 3
+        while True:
+            try:
+#                print('TXNDBRUN', args, kwargs)
+                ret = txn.execute(*args, **kwargs)
+            except (adbapi.ConnectionLost, MySQLdb.OperationalError) as e:
+                print('Storage DB access failed, retrying: %s' % e)
+                if retries < 1:
+                    print(e)
+                    print('Storage actions are failing')
+                    raise
+            except Exception as e:
+                print(e)
+                print('Storage actions are failing, shutting down')
+                reactor.stop()
+                sys.exit(1)
+            else:
+                break
+            retries -= 1
+            time.sleep(0.1)
+        return ret
