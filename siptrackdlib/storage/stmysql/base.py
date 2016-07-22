@@ -181,7 +181,7 @@ class Storage(object):
             raise errors.StorageError('storage in readonly mode')
         q = """insert into associations (self_oid, other_oid) values (%s, %s)"""
         if txn:
-            return self.txndbrun(q, (self_oid, other_oid))
+            return self.txndbrun(txn, q, (self_oid, other_oid))
         else:
             return self.runOperation(q, (self_oid, other_oid))
 
@@ -190,7 +190,7 @@ class Storage(object):
             raise errors.StorageError('storage in readonly mode')
         q = """delete from associations where self_oid = %s and other_oid = %s"""
         if txn:
-            return self.txndbrun(q, (self_oid, other_oid))
+            return self.txndbrun(txn, q, (self_oid, other_oid))
         else:
             return self.runOperation(q, (self_oid, other_oid))
 
@@ -199,7 +199,7 @@ class Storage(object):
             raise errors.StorageError('storage in readonly mode')
         q = """update idmap set parent_oid = %s where oid = %s"""
         if txn:
-            return self.txndbrun(q, (new_parent_oid, self_oid))
+            return self.txndbrun(txn, q, (new_parent_oid, self_oid))
         else:
             return self.runOperation(q, (new_parent_oid, self_oid))
 
