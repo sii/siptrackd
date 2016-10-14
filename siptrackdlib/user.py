@@ -497,10 +497,13 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         """
         ldap_server = self._makeServerString()
         ldap_con = ldap.initialize(ldap_server)
+        # Required for search paging.
+        ldap_con.protocol_version = 3
         ldap_con.set_option(ldap.OPT_REFERRALS, 0)
         if self._user_domain.get():
             bind_username = '%s@%s' % (bind_username, self._user_domain.get())
         ldap_con.simple_bind_s(bind_username, bind_password)
+
         try:
             ldap_groups = None
             valid_group_names = self._valid_groups.get()
@@ -579,8 +582,8 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
         """Return all (valid siptrack) users on the ldap server (under base_dn)."""
         if type(base_dn) == unicode:
             base_dn = base_dn.encode('utf-8')
-        result = ldap_con.search_s(base_dn, ldap.SCOPE_SUBTREE, 'objectClass=user',
-                attrsonly = False, attrlist = ['sAMAccountName'])
+#        result = ldap_con.search_s(base_dn, ldap.SCOPE_SUBTREE, 'objectClass=user',
+#                attrsonly = False, attrlist = ['sAMAccountName'])
         group_users = None
         if valid_groups is not None:
             group_users = {}
@@ -588,16 +591,35 @@ class UserManagerActiveDirectory(treenodes.BaseNode):
                 for user_dn in group['users']:
                     group_users[user_dn] = True
         valid_users = {}
-        for dn, attrs in result:
-            if not dn:
-                continue
-            if group_users is not None and dn not in group_users:
-                continue
-            name = attrs.get('sAMAccountName', [])
-            if len(name) < 1 or len(name[0]) < 1:
-                continue
-            user = {'dn': dn, 'id': name[0] }
-            valid_users[dn] = user
+        lc = ldap.controls.SimplePagedResultsControl(
+            criticality=True, size=5, cookie='')
+        page_ctrl_oid = ldap.controls.SimplePagedResultsControl.controlType
+        result = ldap_con.search_ext(
+            base_dn, ldap.SCOPE_SUBTREE, 'objectClass=user',
+            attrsonly = False, attrlist = ['sAMAccountName'],
+            serverctrls=[lc])
+        while True:
+            rtype, rdata, rmsgid, serverctrls = ldap_con.result3(result)
+            for dn, attrs in rdata:
+                if not dn:
+                    continue
+                if group_users is not None and dn not in group_users:
+                    continue
+                name = attrs.get('sAMAccountName', [])
+                if len(name) < 1 or len(name[0]) < 1:
+                    continue
+                user = {'dn': dn, 'id': name[0] }
+                valid_users[dn] = user
+            pctrls = [c for c in serverctrls if c.controlType == page_ctrl_oid]
+            if pctrls:
+                cookie = lc.cookie = pctrls[0].cookie
+            if cookie:
+                result = ldap_con.search_ext(
+                    base_dn, ldap.SCOPE_SUBTREE, 'objectClass=user',
+                    attrsonly = False, attrlist = ['sAMAccountName'],
+                    serverctrls=[lc])
+            else:
+                break
         return valid_users
 
     @defer.inlineCallbacks
