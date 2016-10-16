@@ -354,9 +354,13 @@ class Storage(object):
 
     @defer.inlineCallbacks
     def upgrade(self):
-        self.db = adbapi.ConnectionPool('MySQLdb', host=self.db_data['host'],
-                                       user=self.db_data['user'], passwd=self.db_data['password'],
-                                       db=self.db_data['db'])
+        self.db = adbapi.ConnectionPool(
+            'MySQLdb',
+            host=self.db_config.get('mysql', 'hostname'),
+            user=self.db_config.get('mysql', 'username'),
+            passwd=self.db_config.get('mysql', 'password'),
+            db=self.db_config.get('mysql', 'dbname')
+        )
         version = yield self.getVersion()
         version = str(version)
         if version == '1':
