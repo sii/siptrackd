@@ -7,6 +7,7 @@ from siptrackdlib import password
 from siptrackd_twisted import helpers
 from siptrackd_twisted import gatherer
 from siptrackd_twisted import baserpc
+from siptrackd_twisted import errors
 
 class PasswordTreeRPC(baserpc.BaseRPC):
     node_type = 'password tree'
@@ -89,6 +90,16 @@ class PasswordKeyRPC(baserpc.BaseRPC):
         pk.changeKey(new_key)
         yield pk.commit()
         defer.returnValue(True)
+
+    @helpers.ValidateSession()
+    def xmlrpc_is_valid_password(self, session, pk_oid, test_password):
+        """Check if a password is valid for this password key"""
+        pk = self.getOID(session, pk_oid)
+        ret_value = pk.isValidPassword(test_password)
+        if ret_value != True:
+            raise errors.SiptrackError('Incorrect password')
+        return ret_value
+
 
 class SubKeyRPC(baserpc.BaseRPC):
     node_type = 'subkey'
