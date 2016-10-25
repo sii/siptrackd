@@ -121,6 +121,11 @@ class SiptrackdRPC(baserpc.BaseRPC):
         return ret
 
     @helpers.ValidateSession()
+    def xmlrpc_session_user_password_has_changed(self, session, password):
+        session_user = session.user.user
+        return session_user.passwordHasChanged(password)
+
+    @helpers.ValidateSession()
     def xmlrpc_oid_exists(self, session, oid):
         """Check if an oid exists."""
         log.debug('oid_exists %s' % (oid), session.user)

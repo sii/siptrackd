@@ -902,6 +902,9 @@ class UserLocal(treenodes.BaseNode, UserCommon):
         self._administrator.set(val)
     administrator = property(_get_administrator, _set_administrator)
 
+    def passwordHasChanged(self, password):
+        return False
+
 class UserLDAP(treenodes.BaseNode, UserCommon):
     """An LDAP user account."""
     class_id = 'UL'
