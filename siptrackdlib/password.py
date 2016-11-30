@@ -27,6 +27,146 @@ class PasswordCategory(treenodes.BaseNode):
     def __init__(self, oid, branch):
         super(PasswordCategory, self).__init__(oid, branch)
 
+
+class EncryptedText(treenodes.BaseNode):
+    """
+    Encrypted large text field, like passwords for more text.
+    """
+
+    class_id = 'ENCTXT'
+    class_name = 'encrypted text'
+
+    def __init__(self, oid, branch, text=None, key=None, unicode=True,
+                 pk_password=None):
+        super(EncryptedText, self).__init__(oid, branch)
+
+        if type(text) in [str, unicode] and unicode:
+            text = text.encode('utf-8')
+
+        self._text = storagevalue.StorageValue(self, 'text', text)
+        self._password_key = storagevalue.StorageValue(self, 'key', key)
+
+        self._lock_data = storagevalue.StorageValue(self, 'enctext-lockdata')
+        self.unicode = unicode
+        self._pk_password = pk_password
+
+
+    def _created(self, user):
+        super(EncryptedText, self)._created(user)
+
+        if type(self._text.get()) not in [str, unicode]:
+            raise errors.SiptrackError('Invalid text in text object')
+
+        self._password_key.commit()
+
+        if self.password_key:
+            if not self.password_key.canEncryptDecrypt(self._pk_password, user):
+                raise errors.SiptrackError('Unable to access encrypted text')
+
+            text, self.lock_data = self.password_key.encrypt(
+                self._text.get(),
+                self._pk_password,
+                user
+            )
+            self._text.set(password)
+        else:
+            self._text.commit()
+
+        self._pk_password = None
+
+
+    def _loaded(self, data=None):
+        super(EncryptedText, self)._loaded(data)
+
+        self._password_key.preload(data)
+        self._lock_data.preload(data)
+        self._text.preload(data)
+        self._pk_password = None
+
+
+    def getText(self, pk_password, user):
+        text = self._text.get()
+        if self.password_key:
+            try:
+                if (
+                    self.password_key.canEncryptDecrypt(
+                        password=pk_password,
+                        user=user
+                    )
+                ):
+                    text = self.password_key.decrypt(
+                        text,
+                        self.lock_data,
+                        pk_password,
+                        user
+                    )
+                else:
+                    text = ''
+            except errors.SiptrackError as e:
+                # Decryption failed
+                text = ''
+
+        if self.unicode and type(text) != unicode:
+            try:
+                text = text.decode('utf-8')
+            except UnicodeDecodeError:
+                text = ''
+            except Exception as e:
+                text = ''
+                tbmsg = traceback.format_exc()
+                log.msg(tbmsg)
+
+        return text
+    
+
+    def setText(self, user, text):
+        """Update the text with new data."""
+
+        if type(text) not in [str, unicode]:
+            raise errors.SiptrackError('Invalid text in text object')
+
+        if self.password_key:
+            if not self.password_key.canEncryptDecrypt(None, user):
+                raise errors.SiptrackError('Unable to access password key')
+            text, self.lock_data = self.password_key.encrypt(text, None, user)
+            self._text.set(text)
+        else:
+            self._text.set(text)
+
+
+    def setPasswordKey(self, user, password_key):
+        """Set a new password key for the text field."""
+
+        canencrypt = self.password_key.canEncryptDecrypt(None, user)
+        if self.password_key and not canencrypt:
+            raise errors.SiptrackError('Unable to access existing password key')
+
+        canencrypt = password_key.canEncryptDecrypt(None, user)
+        if password_key and not canencrypt:
+            raise errors.SiptrackError('Unable to access new password key')
+
+        text = self.getText('', user)
+        self._password_key.set(password_key)
+        self.setText(user, text)
+
+
+    @property
+    def lock_data(self):
+        return self._lock_data.get()
+
+    @lock_data.setter
+    def lock_data(self, value):
+        self._lock_data.set(value)
+
+    @property
+    def password_key(self):
+        return self._password_key.get()
+
+    @password_key.setter
+    def password_key(self, value):
+        self._password_key.set(value)
+
+
 class Password(treenodes.BaseNode):
     """Store passwords.
 
