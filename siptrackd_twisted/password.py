@@ -45,7 +45,9 @@ class PasswordRPC(baserpc.BaseRPC):
             key = None
         else:
             key = self.object_store.getOID(key_oid, user = session.user)
+
         passwd = parent.add(session.user, 'password', password, key)
+
         yield passwd.commit()
         defer.returnValue(passwd.oid)
 

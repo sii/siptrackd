@@ -58,14 +58,24 @@ class Password(treenodes.BaseNode):
     def _created(self, user):
         """Store the password and extra data."""
         super(Password, self)._created(user)
+
         if type(self._password.get()) not in [str, unicode]:
             raise errors.SiptrackError('invalid password in password object')
+
         self._password_key.commit()
-        if self.password_key:
-            if not self.password_key.canEncryptDecrypt(self._pk_password, user):
+
+        pk = self.password_key
+
+        if pk:
+            if not pk.canEncryptDecrypt(self._pk_password, user):
                 raise errors.SiptrackError('unable to access password key')
-            password, self.lock_data = self.password_key.encrypt(self._password.get(),
-                    self._pk_password, user)
+
+            password, self.lock_data = pk.encrypt(
+                self._password.get(),
+                self._pk_password,
+                user
+            )
+
             self._password.set(password)
         else:
             self._password.commit()
@@ -89,17 +99,23 @@ class Password(treenodes.BaseNode):
         If it has been encrypted with a PasswordKey decrypt it first.
         """
         password = self._password.get()
-        if self.password_key:
+        pk = self.password_key
+
+        if pk:
             try:
-                if self.password_key.canEncryptDecrypt(password = pk_password,
-                        user = user):
-                    password = self.password_key.decrypt(password, self.lock_data,
-                            pk_password, user)
+                if pk.canEncryptDecrypt(password = pk_password, user = user):
+                    password = self.password_key.decrypt(
+                        password,
+                        self.lock_data,
+                        pk_password,
+                        user
+                    )
                 else:
                     password = ''
             # Decryption failed.
             except errors.SiptrackError, e:
                 password = ''
+
         if self.unicode and type(password) != unicode:
             try:
                 password = password.decode('utf-8')
@@ -222,14 +238,20 @@ class PasswordKey(treenodes.BaseNode):
         """
         aesobj = AES.new(password, AES.MODE_ECB)
         enc_string = aesobj.encrypt(dec_string)
+
         return enc_string
 
     def encrypt(self, dec_string, pk_password = None, user = None):
         """Encrypt dec_string with the PasswordKey."""
+
+        # Encode string in unicode to handle more than 128 characters
+        dec_string = dec_string.encode('utf-8')
+
         pk_enc_string = self.getEncryptionString(pk_password, user)
         pk_enc_string = PaddedPassword(pk_enc_string, AES.block_size)
         dec_string = PaddedPassword(dec_string, AES.block_size)
         enc_string = self._encrypt(pk_enc_string.padded, dec_string.padded)
+
         return (enc_string, str(dec_string.pad_len))
 
     def _decrypt(self, password, enc_string):
@@ -394,11 +416,13 @@ class SubKey(treenodes.BaseNode):
     password_key = property(_get_password_key, _set_password_key)
 
 class PaddedPassword(object):
+
     """Given a string, pads it to the nearest multiple of then block_size."""
     def __init__(self, password, block_size):
         self.password = password
         self.block_size = block_size
         self.padded, self.pad_len = self.pad(self.password, block_size)
+
 
     def pad(self, padstr, block_size):
         """Pad a string to the closest multiple of block_size."""
@@ -410,6 +434,7 @@ class PaddedPassword(object):
             if padstrlen != 0:
                 padlen = 0
         padstr = padstr + '0' * padlen
+
         return (padstr, padlen)
 
 class PublicKey(treenodes.BaseNode):
