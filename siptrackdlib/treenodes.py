@@ -570,9 +570,10 @@ class BaseNode(object):
         perm = self.getPermission(user, recurse)
         if perm and perm.read_access.get():
             return True
-        log.msg('FAIL: read permission failed for node:%s user:%s, permitting anyway' % (self, user))
-        return True
-#        return False
+
+        log.msg('FAIL: read permission failed for node:%s user:%s' % (self, user))
+
+        return False
 
     def hasWritePermission(self, user, recurse = True):
         if not user or user.administrator:
@@ -585,9 +586,10 @@ class BaseNode(object):
         perm = self.getPermission(user, recurse)
         if perm and perm.write_access.get():
             return True
-        log.msg('FAIL: write permission failed for node:%s user:%s, permitting anyway' % (self, user))
-        return True
-#        return False
+
+        log.msg('FAIL: write permission failed for node:%s user:%s' % (self, user))
+
+        return False
 
     def buildSearchValues(self):
         values = {}
