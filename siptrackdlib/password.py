@@ -59,11 +59,12 @@ class EncryptedText(treenodes.BaseNode):
 
         self._password_key.commit()
 
-        if self.password_key:
-            if not self.password_key.canEncryptDecrypt(self._pk_password, user):
+        pk = self.password_key
+        if pk:
+            if not pk.canEncryptDecrypt(self._pk_password, user):
                 raise errors.SiptrackError('Unable to access encrypted text')
 
-            text, self.lock_data = self.password_key.encrypt(
+            text, self.lock_data = pk.encrypt(
                 self._text.get(),
                 self._pk_password,
                 user
@@ -86,15 +87,12 @@ class EncryptedText(treenodes.BaseNode):
 
     def getText(self, pk_password, user):
         text = self._text.get()
-        if self.password_key:
+        pk = self.password_key
+
+        if pk:
             try:
-                if (
-                    self.password_key.canEncryptDecrypt(
-                        password=pk_password,
-                        user=user
-                    )
-                ):
-                    text = self.password_key.decrypt(
+                if pk.canEncryptDecrypt(password=pk_password, user=user):
+                    text = pk.decrypt(
                         text,
                         self.lock_data,
                         pk_password,
@@ -717,6 +715,7 @@ o.registerChild(PasswordCategory)
 o = object_registry.registerClass(Password)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
+o.registerChild(attribute.EncryptedAttribute)
 
 o = object_registry.registerClass(PasswordKey)
 o.registerChild(attribute.Attribute)

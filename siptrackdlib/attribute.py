@@ -1,5 +1,7 @@
 import re
 
+from Crypto.Cipher import AES
+
 from siptrackdlib.objectregistry import object_registry
 from siptrackdlib import treenodes
 from siptrackdlib import errors
@@ -299,6 +301,51 @@ class VersionedAttribute(AttributeBase):
         self._atype.set(val)
         self.setModified()
     atype = property(_get_atype, _set_atype)
+
+
+class EncryptedAttribute(AttributeBase):
+    """
+    Encrypted Attributes must be children of password nodes to have access
+    to a password key through their parent password node.
+
+    As of writing only atype=text is supported.
+    """
+
+    class_id = 'ENCA'
+    class_name = 'encrypted attribute'
+
+    def __init__(self, oid, branch, name = None, atype = None, value = None):
+        super(Attribute, self).__init__(oid, branch)
+        self._pk = branch.password_key
+
+
+    @property
+    def value(self):
+        if self._value is None:
+            raise errors.MissingData('missing attribute value')
+        # Decrypt value and return it
+        # TODO
+        return self._value
+
+    @value.setter
+    def value(self, val):
+        if self._atype == 'text':
+            if not isinstance(val, (unicode, str)):
+                raise errors.SiptrackError(
+                    'attribute value doesn\'t match type'
+                )
+
+            # Encrypt value and set it
+            # TODO
+            pass
+        else:
+            raise errors.SiptrackError('invalid atype: "{atype}"'.format(
+                atype=self._atype
+            ))
+
+        self.object_store.triggerEvent('node update', self)
+        self.setModified()
+
 
 # Add the objects in this module to the object registry.
 o = object_registry.registerClass(Attribute)
