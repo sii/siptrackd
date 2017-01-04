@@ -444,7 +444,14 @@ class BaseNode(object):
         match_any_attrs = True
         if len(attr_limit) > 0:
             match_any_attrs = False
-        local_include = ['attribute', 'versioned attribute', 'ipv4 network', 'ipv6 network']
+
+        local_include = [
+            'attribute',
+            'versioned attribute',
+            'ipv4 network',
+            'ipv6 network'
+        ]
+
         prev_added = None
         node_filter = NodeFilter(include, exclude, no_match_break)
 #        for node in self.traverse(include = local_include, exclude = exclude,
@@ -456,8 +463,13 @@ class BaseNode(object):
                 no_match_break = no_match_break, user = None):
             if not node.hasReadPermission(user):
                 continue
+
+            local_types = [
+                'attribute',
+                'versioned attribute',
+            ]
             # Match attributes.
-            if node.class_name in ['attribute', 'versioned attribute']:
+            if node.class_name in local_types:
                 value = node.value
                 if node.atype in ['int', 'bool']:
                     value = str(value)

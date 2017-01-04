@@ -1,4 +1,5 @@
 from siptrackdlib import errors
+from siptrackdlib import log
 
 class ObjectClass(object):
     """A class definition in the object registry.
@@ -95,7 +96,7 @@ class ObjectRegistry(object):
         branch = parent_branch.add(oid)
         try:
             obj = object_class.class_reference(oid, branch, *args, **kwargs)
-        except:
+        except Exception as e:
             branch.remove(recursive = False, callback_data = None)
             self.revertOID()
             raise

@@ -223,7 +223,12 @@ class ObjectStore(object):
             except errors.NonExistent:
                 log.msg('quicksearch matched non-existent oid, something is wrong: %s' % (oid))
                 continue
-            if node.class_name in ['attribute', 'versioned attribute']:
+            local_types = [
+                'attribute',
+                'versioned attribute',
+                'encrypted attribute'
+            ]
+            if node.class_name in local_types:
                 if len(attr_limit) > 0 and node.name not in attr_limit:
                     continue
                 # Get the attributes nearest _non-attribute_ parent.
@@ -261,7 +266,14 @@ class ObjectStore(object):
             except errors.NonExistent:
                 log.msg('quicksearch matched non-existent oid, something is wrong: %s' % (oid))
                 continue
-            if node.class_name in ['attribute', 'versioned attribute']:
+
+            local_types = [
+                'attribute',
+                'versioned attribute',
+                'encrypted attribute'
+            ]
+
+            if node.class_name in local_types:
                 # Get the attributes nearest _non-attribute_ parent.
                 node = node.getParentNode()
             if not node.hasReadPermission(user):

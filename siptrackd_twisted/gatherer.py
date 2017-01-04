@@ -70,7 +70,11 @@ class ListCreator(object):
         parent: oid string or '' if no parent exists
         ctime: creation time of the object
     """
-    attr_incl = {'attribute': True, 'versioned attribute': True}
+    attr_incl = {
+        'attribute': True,
+        'versioned attribute': True,
+        'encrypted attribute': True
+    }
 
     def __init__(self, object_store, user):
         self.object_store = object_store
@@ -140,7 +144,7 @@ class ListCreator(object):
         # Special handling when gathering for an attribute specifically.
         # Otherwise fetching for an attribute can result in no data at all
         # being returned if include_parents = False.
-        if node.class_name in ['attribute', 'versioned attribute']:
+        if node.class_name in self.attr_incl.keys():
             exclude = []
             max_depth = 0
         for depth, child in node.traverse(max_depth = max_depth,
@@ -255,7 +259,7 @@ class ListCreator(object):
 ##            print 'EARLY BREAK, node added', node
 #            return
         self._addNode(node)
-        include = ['attribute', 'versioned attribute']
+        include = self.attr_incl.keys()
         for child in node.traverse(include_self = False, include = include,
                 no_match_break = True, user = self.user):
             if child.oid not in self.included_nodes:

@@ -315,8 +315,17 @@ class EncryptedAttribute(AttributeBase):
     class_name = 'encrypted attribute'
 
     def __init__(self, oid, branch, name = None, atype = None, value = None):
-        super(Attribute, self).__init__(oid, branch)
-        self._pk = branch.password_key
+        super(EncryptedAttribute, self).__init__(oid, branch)
+        parent = self.getParentNode()
+        self._pk = parent.password_key
+
+
+    def getParentNode(self):
+        """Get the closest parent _non-attribute_ node."""
+        parent = self
+        while parent.class_id in ['VA', 'CA', 'ENCA']:
+            parent = parent.parent
+        return parent
 
 
     @property
@@ -356,3 +365,7 @@ o = object_registry.registerClass(VersionedAttribute)
 o.registerChild(Attribute)
 o.registerChild(VersionedAttribute)
 
+o = object_registry.registerClass(EncryptedAttribute)
+o.registerChild(EncryptedAttribute)
+o.registerChild(Attribute)
+o.registerChild(VersionedAttribute)

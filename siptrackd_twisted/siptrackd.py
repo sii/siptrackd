@@ -518,6 +518,15 @@ def run_siptrackd_twisted(listen_port, ssl_port,
     versioned_attribute_rpc = attribute.VersionedAttributeRPC(object_store, session_handler)
     attribute_rpc.putSubHandler('versioned', versioned_attribute_rpc)
 
+    encrypted_attribute_rpc = attribute.EncryptedAttributeRPC(
+        object_store,
+        session_handler
+    )
+    attribute_rpc.putSubHandler(
+        'encrypted',
+        encrypted_attribute_rpc
+    )
+
     template_rpc = template.TemplateRPC(object_store, session_handler)
     siptrackd_rpc.putSubHandler('template', template_rpc)
 

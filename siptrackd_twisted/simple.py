@@ -27,7 +27,11 @@ class SimpleRPC(baserpc.BaseRPC):
         root = self.object_store.getOID(oid, user = session.user)
         node_filter = treenodes.NodeFilter(include, exclude,
                 no_match_break = False)
-        local_include = ['attribute', 'versioned attribute']
+        local_include = [
+            'attribute',
+            'versioned attribute',
+            'encrypted attribute'
+        ]
         result = []
         for node in root.traverse(include = local_include, exclude = exclude,
                 no_match_break = False):
@@ -107,7 +111,14 @@ class SimpleRPC(baserpc.BaseRPC):
 
     def _getDeviceData(self, user, device):
         data = {'oid': device.oid, 'parent': device.parent.oid, 'attributes': {}, 'passwords': [], 'links': [], 'children': [], 'networks': []}
-        for attribute in device.listChildren(include=['attribute', 'versioned attribute']):
+
+        local_include = [
+            'attribute',
+            'versioned attribute',
+            'encrypted attribute'
+        ]
+
+        for attribute in device.listChildren(include=local_include):
             data['attributes'][attribute.name] = attribute.value
         for password in device.listChildren(include=['password']):
             password_dict = {'password': password.getPassword(None, user), 'username': password.getAttributeValue('username', ''), 'description': password.getAttributeValue('description', '')}

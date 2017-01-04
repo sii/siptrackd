@@ -93,6 +93,30 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
         yield self.object_store.commit(attribute)
         defer.returnValue(True)
 
+
+class EncryptedAttributeRPC(baserpc.BaseRPC):
+    node_type = 'encrypted attribute'
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_add(self, session, parent_oid, name, atype, value):
+        """Create a new attribute."""
+        parent = self.object_store.getOID(parent_oid, user = session.user)
+        obj = parent.add(session.user, 'encrypted attribute', name, atype, value)
+        yield self.object_store.commit(obj)
+        defer.returnValue(obj.oid)
+
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_set_value(self, session, oid, value):
+        """Set an existing attributes value."""
+        attribute = self.getOID(session, oid)
+        attribute.value = value
+        yield self.object_store.commit(attribute)
+        defer.returnValue(True)
+
+
 def attribute_data_extractor(node, user):
     value = node.value
     # Binary data needs to be wrapped in xmlrpclib.Binary.
@@ -113,3 +137,7 @@ gatherer.node_data_registry.register(attribute.Attribute,
 gatherer.node_data_registry.register(attribute.VersionedAttribute,
         versioned_attribute_data_extractor)
 
+gatherer.node_data_registry.register(
+    attribute.EncryptedAttribute,
+    attribute_data_extractor
+)
