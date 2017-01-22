@@ -19,7 +19,14 @@ from siptrackd_twisted import log
 
 class EntityDataCache(object):
     # Don't cache templates due to problems with their inheritance structures.
-    skip_cache_data_classes = ['password', 'template', 'device template', 'network template']
+    # Also don't cache anything encrypted due to security.
+    skip_cache_data_classes = [
+        'password',
+        'template',
+        'device template',
+        'network template',
+        'encrypted attribute'
+    ]
 
     def __init__(self, node_data_registry):
         self.node_data_registry = node_data_registry
@@ -38,6 +45,8 @@ class EntityDataCache(object):
             node_data['parent'] = node.parent.oid
         else:
             node_data['parent'] = ''
+
+
         node_data = json_encode(node_data)
         return node_data
 
@@ -45,10 +54,12 @@ class EntityDataCache(object):
         ret = None
         if node.oid in self.cache:
             timestamp, data = self.cache[node.oid]
+            
             if timestamp >= node.modtime and node.class_name not in self.skip_cache_data_classes:
                 ret = data
                 if node.class_name in self.skip_cache_data_classes:
                     ret['data'] = self.node_data_registry.extract(node, user)
+
         if not ret:
             ret = self._getNodeData(node, user)
             self.cache[node.oid] = (time.time(), ret)

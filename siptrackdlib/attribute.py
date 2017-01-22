@@ -7,6 +7,8 @@ from siptrackdlib import treenodes
 from siptrackdlib import errors
 from siptrackdlib import storagevalue
 
+from siptrackdlib import log
+
 class AttributeBase(treenodes.BaseNode):
     def regmatch(self, re_pattern, name = None):
         """See if the attributes value matches a regexp.
@@ -318,6 +320,47 @@ class EncryptedAttribute(AttributeBase):
         super(EncryptedAttribute, self).__init__(oid, branch)
         parent = self.getParentNode()
         self._pk = parent.password_key
+        self._name = name
+        self._atype = atype
+        self._value = value
+        self._lock_data = storagevalue.StorageValue(self, 'enca-lockdata')
+
+
+    def _created(self, user):
+        super(EncryptedAttribute, self)._created(user)
+        self.user = user
+        self.name = self._name
+        self.atype = self._atype
+        self.value = self._value
+
+
+    def _loaded(self, data = None):
+        super(EncryptedAttribute, self)._loaded(data)
+        if data:
+            self._name = data['attr-name']
+            self._atype = data['attr-type']
+            self._value = data['attr-value']
+        self._lock_data.preload(data)
+
+
+    def _remove(self, *args, **kwargs):
+        oid = self.oid
+        parent = self.parent
+        super(EncryptedAttribute, self)._remove(*args, **kwargs)
+        self.searcherAction('remove_attr', {'parent': parent})
+
+
+    # Override buildSearchValues to avoid exposing encrypted data
+    # to search indexer.
+    def buildSearchValues(self):
+        name = self.name
+        if type(name) == unicode:
+            name  = name.encode('utf-8')
+        name = name.lower().replace(' ', '_').replace('/', '_')
+        values = {}
+        if self.atype == 'text':
+            values = {name: u''}
+        return values
 
 
     def getParentNode(self):
@@ -329,31 +372,91 @@ class EncryptedAttribute(AttributeBase):
 
 
     @property
+    def name(self):
+        if not self._name:
+            raise errors.MissingData('missing attribute name: %s' % (self.oid))
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
+        self.storageAction('write_data', {'name': 'attr-name', 'value': self._name})
+        self.setModified()
+
+
+    @property
     def value(self):
         if self._value is None:
             raise errors.MissingData('missing attribute value')
-        # Decrypt value and return it
-        # TODO
-        return self._value
+
+        if not self._pk.canEncryptDecrypt(None, self.user):
+            raise errors.SiptrackError('Unable to access password key')
+
+        dec_value = self._pk.decrypt(
+            self._value,
+            self.lock_data,
+            None,
+            self.user
+        )
+        return dec_value
 
     @value.setter
     def value(self, val):
-        if self._atype == 'text':
-            if not isinstance(val, (unicode, str)):
-                raise errors.SiptrackError(
-                    'attribute value doesn\'t match type'
-                )
-
-            # Encrypt value and set it
-            # TODO
-            pass
-        else:
+        if self._atype != 'text':
             raise errors.SiptrackError('invalid atype: "{atype}"'.format(
                 atype=self._atype
             ))
 
+        if not isinstance(val, (unicode, str)):
+            raise errors.SiptrackError(
+                'attribute value must be unicode or str'
+            )
+
+        if isinstance(val, unicode):
+            val = val.encode('utf-8')
+
+        if not self._pk.canEncryptDecrypt(None, self.user):
+            raise errors.SiptrackError('Unable to access password key')
+
+        enc_val, self.lock_data = self._pk.encrypt(val, None, self.user)
+
+        # DEBUG
+        log.msg('enc_val: {enc_val}'.format(
+            enc_val=repr(enc_val)
+        ))
+
+        self.storageAction(
+            'write_data',
+            {'name': 'attr-value', 'value': enc_val}
+        )
+
+        self._value = enc_val
         self.object_store.triggerEvent('node update', self)
         self.setModified()
+
+
+    @property
+    def atype(self):
+        if not self._atype:
+            raise errors.MissingData('missing attribute value')
+        return self._atype
+
+    @atype.setter
+    def atype(self, val):
+        self._atype = val
+        self.storageAction(
+            'write_data',
+            {'name': 'attr-type', 'value': self._atype}
+        )
+
+
+    @property
+    def lock_data(self):
+        return self._lock_data.get()
+
+    @lock_data.setter
+    def lock_data(self, val):
+        self._lock_data.set(val)
 
 
 # Add the objects in this module to the object registry.
