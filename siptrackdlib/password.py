@@ -383,7 +383,8 @@ class PasswordKey(treenodes.BaseNode):
         """Encrypt dec_string with the PasswordKey."""
 
         # Encode string in unicode to handle more than 128 characters
-        dec_string = dec_string.encode('utf-8')
+        if isinstance(dec_string, unicode):
+            dec_string = dec_string.encode('utf-8')
 
         pk_enc_string = self.getEncryptionString(pk_password, user)
         pk_enc_string = PaddedPassword(pk_enc_string, AES.block_size)
