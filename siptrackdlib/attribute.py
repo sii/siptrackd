@@ -369,6 +369,56 @@ class EncryptedAttribute(AttributeBase):
         while parent.class_id in ['VA', 'CA', 'ENCA']:
             parent = parent.parent
         return parent
+    
+
+    def getAttribute(self, user):
+        if self._value is None:
+            raise errors.MissingData('missing attribute value')
+
+        if not self._pk.canEncryptDecrypt(None, user):
+            raise errors.SiptrackError('Unable to access password key')
+
+        self.user = user
+
+        dec_value = self._pk.decrypt(
+            self._value,
+            self.lock_data,
+            None,
+            self.user
+        )
+
+        return dec_value
+
+
+    def setAttribute(self, user, val):
+        if self._atype != 'text':
+            raise errors.SiptrackError('invalid atype: "{atype"}'.format(
+                atype=self._atype
+            ))
+        
+        if not isinstance(val, (unicode, str)):
+            raise errors.SiptrackError(
+                'attribute value must be unicode or str'
+            )
+
+        if isinstance(val, unicode):
+            val = val.encode('utf-8')
+
+        if not self._pk.canEncryptDecrypt(None, user):
+            raise errors.SiptrackError('Unable to access password key')
+        
+        self.user = user
+
+        enc_val, self.lock_data = self._pk.encrypt(val, None, self.user)
+
+        self.storageAction(
+            'write_data',
+            {'name': 'attr-value', 'value': enc_val}
+        )
+
+        self._value = enc_val
+        self.object_store.triggerEvent('node update', self)
+        self.setModified()
 
 
     @property
@@ -386,53 +436,16 @@ class EncryptedAttribute(AttributeBase):
 
     @property
     def value(self):
-        if self._value is None:
-            raise errors.MissingData('missing attribute value')
-
-        if not self._pk.canEncryptDecrypt(None, self.user):
-            raise errors.SiptrackError('Unable to access password key')
-
-        dec_value = self._pk.decrypt(
-            self._value,
-            self.lock_data,
-            None,
-            self.user
-        )
-        return dec_value
+        if self.user is None:
+            raise errors.SiptrackError('User not available')
+        return self.getAttribute(self.user)
 
     @value.setter
     def value(self, val):
-        if self._atype != 'text':
-            raise errors.SiptrackError('invalid atype: "{atype}"'.format(
-                atype=self._atype
-            ))
+        if self.user is None:
+            raise errors.SiptrackError('User not available')
 
-        if not isinstance(val, (unicode, str)):
-            raise errors.SiptrackError(
-                'attribute value must be unicode or str'
-            )
-
-        if isinstance(val, unicode):
-            val = val.encode('utf-8')
-
-        if not self._pk.canEncryptDecrypt(None, self.user):
-            raise errors.SiptrackError('Unable to access password key')
-
-        enc_val, self.lock_data = self._pk.encrypt(val, None, self.user)
-
-        # DEBUG
-        log.msg('enc_val: {enc_val}'.format(
-            enc_val=repr(enc_val)
-        ))
-
-        self.storageAction(
-            'write_data',
-            {'name': 'attr-value', 'value': enc_val}
-        )
-
-        self._value = enc_val
-        self.object_store.triggerEvent('node update', self)
-        self.setModified()
+        self.setPassword(self.user, val)
 
 
     @property

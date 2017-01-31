@@ -118,7 +118,8 @@ class EncryptedAttributeRPC(baserpc.BaseRPC):
 
 
 def encrypted_attribute_data_extractor(node, user):
-    return [node.name, node.atype, '']
+    value = node.getAttribute(user)
+    return [node.name, node.atype, value]
 
 
 def attribute_data_extractor(node, user):
