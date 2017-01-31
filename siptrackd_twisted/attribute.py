@@ -129,7 +129,7 @@ def encrypted_attribute_data_extractor(node, user):
     # attribute value.
     try:
         value = node.getAttribute(user)
-    except siptrackdlib.errors.SiptrackError as e:
+    except Exception as e:
         value = ''
         pass
 
