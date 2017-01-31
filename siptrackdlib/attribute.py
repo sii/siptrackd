@@ -445,7 +445,7 @@ class EncryptedAttribute(AttributeBase):
         if self.user is None:
             raise errors.SiptrackError('User not available')
 
-        self.setPassword(self.user, val)
+        self.setAttribute(self.user, val)
 
 
     @property
