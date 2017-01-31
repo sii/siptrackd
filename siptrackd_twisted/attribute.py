@@ -118,7 +118,21 @@ class EncryptedAttributeRPC(baserpc.BaseRPC):
 
 
 def encrypted_attribute_data_extractor(node, user):
-    value = node.getAttribute(user)
+    # errors.SiptrackError is raised by attribute.getPassword often when
+    # searching objects or listing objects with enca attributes connected
+    # to keys that the current user does not have access to. So default to
+    # showing a blank attribute.
+    #
+    # TODO: Some indication that the user lacks password key access to show
+    # the encrypted attribute. Or solve it in siptrackweb by simply showing
+    # the password key each attribute is connected to along with the blank
+    # attribute value.
+    try:
+        value = node.getAttribute(user)
+    except errors.SiptrackError as e:
+        value = ''
+        pass
+
     return [node.name, node.atype, value]
 
 
