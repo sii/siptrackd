@@ -372,6 +372,9 @@ class EncryptedAttribute(AttributeBase):
     
 
     def getAttribute(self, user):
+        parent = self.getParentNode()
+        self._pk = parent.password_key
+
         if self._value is None:
             raise errors.MissingData('missing attribute value')
 
@@ -391,6 +394,9 @@ class EncryptedAttribute(AttributeBase):
 
 
     def setAttribute(self, user, val):
+        parent = self.getParentNode()
+        self._pk = parent.password_key
+
         if self._atype != 'text':
             raise errors.SiptrackError('invalid atype: "{atype"}'.format(
                 atype=self._atype
