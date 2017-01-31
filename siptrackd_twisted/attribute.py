@@ -117,6 +117,10 @@ class EncryptedAttributeRPC(baserpc.BaseRPC):
         defer.returnValue(True)
 
 
+def encrypted_attribute_data_extractor(node, user):
+    return [node.name, node.atype, '']
+
+
 def attribute_data_extractor(node, user):
     value = node.value
     # Binary data needs to be wrapped in xmlrpclib.Binary.
@@ -124,12 +128,14 @@ def attribute_data_extractor(node, user):
 #        value = xmlrpclib.Binary(value)
     return [node.name, node.atype, value]
 
+
 def versioned_attribute_data_extractor(node, user):
     values = node.values
     # Binary data needs to be wrapped in xmlrpclib.Binary.
     if node.atype == 'binary':
         values = [xmlrpclib.Binary(value) for value in node.values]
     return [node.name, node.atype, values, node.max_versions]
+
 
 gatherer.node_data_registry.register(attribute.Attribute,
         attribute_data_extractor)
@@ -139,5 +145,5 @@ gatherer.node_data_registry.register(attribute.VersionedAttribute,
 
 gatherer.node_data_registry.register(
     attribute.EncryptedAttribute,
-    attribute_data_extractor
+    encrypted_attribute_data_extractor
 )
