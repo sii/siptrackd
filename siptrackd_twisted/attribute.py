@@ -52,7 +52,7 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
 
     @helpers.ValidateSession()
     @defer.inlineCallbacks
-    def xmlrpc_add(self, sid, parent_oid, name, atype, max_versions, value = None):
+    def xmlrpc_add(self, session, parent_oid, name, atype, max_versions, value = None):
         """Create a new versioned attribute."""
         parent = self.object_store.getOID(parent_oid, user = session.user)
         # Binary data is converted into xmlrpclib.Binary objects. If this is
