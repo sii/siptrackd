@@ -12,12 +12,11 @@ container_ip=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" "$container_
 echo "DB server IP: $container_ip"
 
 stop_container () {
+    echo "Stopping container $container_id"
     docker stop "$container_id"
 }
 
 trap stop_container EXIT
-
-sleep 4
 
 export container_ip db_user db_name db_password
 
@@ -25,7 +24,15 @@ echo "Creating config file dev_local.cfg"
 envsubst < default_template.cfg > dev_local.cfg
 
 echo "Importing test sql data"
-mysql -u "$db_user" -p"$db_password" < siptrack_test_data.sql
+tries=0
+while ! mysql -h "$container_ip" -u "$db_user" -p"$db_password" "$db_name" < siptrack_test_data.sql; do
+    sleep 3.0
+    if [ $tries -ge 10 ]; then
+        echo "Failed to import test sql data"
+        exit 1
+    fi
+    ((tries++))
+done
 
 echo "Hit Enter to stop container"
 read -r junk
