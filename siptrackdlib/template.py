@@ -196,6 +196,25 @@ class DeviceTemplate(BaseTemplate):
         if self._hasInheritanceLoop(value):
             raise errors.SiptrackError('inheritance loop detected')
 
+
+class CITemplate(BaseTemplate):
+    """
+    ConfigurationItem template
+    """
+
+    class_id = 'CITMPL'
+    class_name = 'ci template'
+
+    def _validateInherited(self, value):
+        if type(value) != list:
+            raise errors.SiptrackError('invalid value for argument inherited templates')
+        for node in value:
+            if type(node) is not DeviceTemplate:
+                raise errors.SiptrackError('invalid value for argument inherited templates')
+        if self._hasInheritanceLoop(value):
+            raise errors.SiptrackError('inheritance loop detected')
+
+
 class NetworkTemplate(BaseTemplate):
     class_id = 'NTMPL'
     class_name = 'network template'
