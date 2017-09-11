@@ -7,6 +7,7 @@ from siptrackdlib import attribute
 from siptrackdlib import permission
 from siptrackdlib import counter
 from siptrackdlib import device
+from siptrackdlib import configurationitem
 from siptrackdlib import network
 from siptrackdlib import password
 from siptrackdlib import user
@@ -92,6 +93,7 @@ o.registerChild(network.NetworkTree)
 o.registerChild(counter.Counter)
 o.registerChild(counter.CounterLoop)
 o.registerChild(device.DeviceTree)
+o.registerChild(configurationitem.CITree)
 o.registerChild(password.PasswordKey)
 o.registerChild(password.PasswordTree)
 o.registerChild(config.ConfigNetworkAutoassign)
