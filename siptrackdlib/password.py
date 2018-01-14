@@ -13,6 +13,9 @@ from siptrackdlib import storagevalue
 from siptrackdlib import log
 from siptrackdlib import permission
 
+from siptrackdlib.ciphers import CipherAESECB
+
+
 class PasswordTree(treenodes.BaseNode):
     class_id = 'PT'
     class_name = 'password tree'
@@ -334,6 +337,9 @@ class PasswordKey(treenodes.BaseNode):
         self._verify_crypt = storagevalue.StorageValue(self, 'verify-crypt', None)
         self._subkey_callbacks = []
 
+        self._cipher = CipherAESECB(key)
+
+
     def _created(self, user):
         """Generate and store all needed data.
 
@@ -345,14 +351,18 @@ class PasswordKey(treenodes.BaseNode):
                 Encrypted with self.key.
         """
         super(PasswordKey, self)._created(user)
+
         if self.password == None:
             raise errors.SiptrackError('invalid password in password key object')
         if len(self.password) > 32:
             raise errors.SiptrackError('password keys > 32 bytes not permitted')
-        password = PaddedPassword(self.password, AES.block_size)
-        self._encryption_string.set(self._encrypt(password.padded, self._generateString(32)))
+
+        #password = PaddedPassword(self.password, AES.block_size)
+        password_padded, padlen = self._cipher.pad_string(self.password)
+    
+        self._encryption_string.set(self._encrypt(password_padded, self._generateString(32)))
         self._verify_clear.set(self._generateString(32))
-        self._verify_crypt.set(self._encrypt(password.padded, self._verify_clear.get()))
+        self._verify_crypt.set(self._encrypt(password_padded, self._verify_clear.get()))
         self.password = None
 
     def _loaded(self, data = None):
