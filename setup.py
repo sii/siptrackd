@@ -9,9 +9,15 @@ setup(name = 'siptrackd',
         author_email = 'simon@theoak.se',
         url = 'http://siptrack.theoak.se/',
         license = 'BSD',
-        packages = ['siptrackdlib', 'siptrackdlib.network', 'siptrackdlib.external',
-            'siptrackdlib.storage', 'siptrackdlib.storage.stsqlite',
-            'siptrackd_twisted'],
+        packages = [
+            'siptrackdlib',
+            'siptrackdlib.network',
+            'siptrackdlib.external',
+            'siptrackdlib.storage',
+            'siptrackdlib.storage.stsqlite',
+            'siptrackdlib.storage.stmysql',
+            'siptrackd_twisted'
+        ],
         scripts = ['siptrackd']
         )
 
