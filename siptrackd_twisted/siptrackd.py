@@ -645,7 +645,7 @@ def reset_user_manager(storage):
     @defer.inlineCallbacks
     def run():
         print  'Creating object store, this might take a while.'
-        object_store = siptrackdlib.ObjectStore(storage)
+        object_store = siptrackdlib.ObjectStore(storage, preload=False)
         yield object_store.init()
         um = object_store.view_tree.add(None, 'user manager local')
         u = um.add(None, 'user local', 'admin', 'admin', True)
