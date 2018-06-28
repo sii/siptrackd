@@ -1,6 +1,7 @@
 import os
 import codecs
-import MySQLdb
+#import MySQLdb
+import pymysql
 import struct
 import threading
 import time
@@ -88,7 +89,7 @@ class Storage(object):
     @defer.inlineCallbacks
     def initialize(self, version):
         self.db = adbapi.ConnectionPool(
-            'MySQLdb',
+            'pymysql',
             host=self.db_config.get('mysql', 'hostname'),
             user=self.db_config.get('mysql', 'username'),
             passwd=self.db_config.get('mysql', 'password'),
@@ -355,7 +356,7 @@ class Storage(object):
     @defer.inlineCallbacks
     def upgrade(self):
         self.db = adbapi.ConnectionPool(
-            'MySQLdb',
+            'pymysql',
             host=self.db_config.get('mysql', 'hostname'),
             user=self.db_config.get('mysql', 'username'),
             passwd=self.db_config.get('mysql', 'password'),
@@ -404,7 +405,7 @@ class Storage(object):
         while True:
             try:
                 ret = yield self.db.runInteraction(function, *args, **kwargs)
-            except (adbapi.ConnectionLost, MySQLdb.OperationalError) as e:
+            except (adbapi.ConnectionLost, pymysql.OperationalError) as e:
                 print('Storage DB access failed, restarting transaction: %s' % e)
                 if retries < 1:
                     print(e)
@@ -431,7 +432,7 @@ class Storage(object):
             try:
 #                print('DBRUN', args, kwargs)
                 ret = yield function(*args, **kwargs)
-            except (adbapi.ConnectionLost, MySQLdb.OperationalError) as e:
+            except (adbapi.ConnectionLost, pymysql.OperationalError) as e:
                 if retries < 1:
                     print(e)
                     print('Storage actions are failing, shutting down')
@@ -455,7 +456,7 @@ class Storage(object):
             try:
 #                print('TXNDBRUN', args, kwargs)
                 ret = txn.execute(*args, **kwargs)
-            except (adbapi.ConnectionLost, MySQLdb.OperationalError) as e:
+            except (adbapi.ConnectionLost, pymysql.OperationalError) as e:
                 print('Storage DB access failed, retrying: %s' % e)
                 if retries < 1:
                     print(e)

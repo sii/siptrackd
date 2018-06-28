@@ -3,5 +3,5 @@ pyOpenSSL
 python-ldap
 Whoosh
 pycrypto
-MySQL-python
+pymysql
 service_identity
