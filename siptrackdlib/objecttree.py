@@ -189,12 +189,12 @@ class Branch(object):
             ret = self._removeSingle(callback_data)
         return ret
 
-    def relocate(self, new_parent, callback_data):
+    def relocate(self, new_parent):
         """Relocate a branch (give it a new parent)."""
         self.parent.branches.remove(self)
         new_parent.branches.append(self)
         self.parent = new_parent
-        self.tree.relocate_callback(self, callback_data)
+        self.tree.relocate_callback(self)
 
     def unlink(self):
         """Used when unlinking branches that still exist, but should not be present in the tree.
