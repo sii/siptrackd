@@ -423,10 +423,10 @@ class Tree(object):
             return self.callbacks['remove'](branch, callback_data)
         return None
 
-    def relocate_callback(self, branch, callback_data):
+    def relocate_callback(self, branch):
         """Callback to indicate a branch being relocated (new parent)."""
         if 'relocate' in self.callbacks:
-            return self.callbacks['relocate'](branch, callback_data)
+            return self.callbacks['relocate'](branch)
         return None
 
     def free(self):

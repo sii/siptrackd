@@ -8,12 +8,8 @@ from siptrackdlib import errors
 from siptrackdlib import template
 from siptrackdlib import config
 from siptrackdlib import storagevalue
-#<<<<<<< HEAD
 from siptrackdlib import deviceconfig
-#||||||| merged common ancestors
-#=======
 from siptrackdlib import eventlog
-#>>>>>>> eventlog
 
 class DeviceTree(treenodes.BaseNode):
     class_id = 'DT'
@@ -43,6 +39,7 @@ class Device(treenodes.BaseNode):
         super(Device, self)._loaded(data)
 
     def relocate(self, new_parent, user = None):
+        # TODO: add event log here?
         old_parent = self.parent
         super(Device, self).relocate(new_parent, user)
 
@@ -116,11 +113,7 @@ o.registerChild(password.Password)
 o.registerChild(config.ConfigNetworkAutoassign)
 o.registerChild(config.ConfigValue)
 o.registerChild(permission.Permission)
-#<<<<<<< HEAD
 o.registerChild(deviceconfig.DeviceConfig)
 o.registerChild(deviceconfig.DeviceConfigTemplate)
-#||||||| merged common ancestors
-#=======
 o.registerChild(eventlog.EventLog)
-#>>>>>>> eventlog
 

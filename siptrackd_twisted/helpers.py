@@ -35,7 +35,6 @@ def error_handler(func):
     return handle_errors
 
 def _eb_ret(error):
-    log.msg(error.getTraceback())
     return _check_exception(error.value)
 
 def _check_exception(exc):
@@ -55,16 +54,11 @@ def _check_exception(exc):
         return errors.client_error_nexists(exc.__str__())
     elif isinstance(exc, siptrackdlib.errors.SiptrackError):
         tbmsg = traceback.format_exc()
-        # If there is no traceback to print we are probably in a deferreds
-        # error path, in which case the traceback has already been printed in
-        # _eb_ret.
-        if tbmsg is not None:
-            log.msg(tbmsg)
+        log.msg(tbmsg)
         return errors.generic_error(exc.__str__())
     else:
         tbmsg = traceback.format_exc()
-        if tbmsg is not None:
-            log.msg(tbmsg)
+        log.msg(tbmsg)
         return errors.generic_error(exc.__str__())
 
 class ValidateSession(object):

@@ -80,7 +80,7 @@ class ObjectStore(object):
         self.view_tree = self.getOID('0')
         if self.preload:
             yield self.preLoad()
-        yield self.view_tree._initUserManager()
+        yield self.view_tree._init()
         treenodes.perm_cache.clear()
 
     @defer.inlineCallbacks
@@ -348,7 +348,6 @@ class ObjectStore(object):
                     data.append((node, actions))
             return data
         st_d = self.storage.interact(db_commit, get_commit_data(nodes))
-        se_d = self.searcher.commit(orig_nodes)
         yield st_d
         se_d = self.searcher.commit(orig_nodes)
         defer.returnValue(True)

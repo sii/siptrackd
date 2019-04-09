@@ -54,10 +54,10 @@ def load_data_callback(branch):
         ret = obj
     return ret
 
-def relocate_callback(branch, user):
+def relocate_callback(branch):
     """Branch callback used when relocating a branch/node."""
     if branch.ext_data:
-        branch.ext_data._relocate(user)
+        branch.ext_data._relocate()
 
 class NodeFilter(object):
     """A filter for object tree branch traversal.
@@ -277,7 +277,7 @@ class BaseNode(object):
         self.searcherAction('remove_node')
         self.removeStorageAction('create_node')
 
-    def _relocate(self, user):
+    def _relocate(self):
         """Relocate (new parent) an object. Called from branch callbacks.
         
         Not for manual usage, should only be called by the branch callback
@@ -309,7 +309,7 @@ class BaseNode(object):
             if node is self:
                 raise errors.SiptrackError('can\'t relocate to a child')
             node = node.parent
-        self.branch.relocate(new_parent.branch, user)
+        self.branch.relocate(new_parent.branch)
         self.object_store.triggerEvent('node relocate', self)
         self.setModified()
 
