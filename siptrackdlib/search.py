@@ -120,10 +120,12 @@ class WhooshSearch(BaseSearch):
         log.msg('WhooshSearch building index, hang on.')
         self._indexed = True
         attr_types = ['attribute', 'versioned attribute']
+        self._write_lock.acquire()
         writer = self.ix.writer()
         for node in object_store.view_tree.traverse(exclude = attr_types):
             self._setNode(node, writer)
         writer.commit()
+        self._write_lock.release()
         log.msg('WhooshSearch index building complete.')
 
     def commit(self, nodes):

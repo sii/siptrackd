@@ -81,7 +81,7 @@ class Attribute(AttributeBase):
         super(Attribute, self)._created(user)
         self.name = self._name
         self.atype = self._atype
-        self.value = self._value
+        self._set_value(self._value, skip_log=True, user=user)
 
     def _loaded(self, data = None):
         super(Attribute, self)._loaded(data)
@@ -95,10 +95,10 @@ class Attribute(AttributeBase):
                 else:
                     self._value = True
 
-    def _remove(self, *args, **kwargs):
+    def _remove(self, user, *args, **kwargs):
         oid = self.oid
         parent = self.parent
-        super(Attribute, self)._remove(*args, **kwargs)
+        super(Attribute, self)._remove(user, *args, **kwargs)
         self.searcherAction('remove_attr', {'parent': parent})
 
     def _get_name(self):
@@ -117,7 +117,7 @@ class Attribute(AttributeBase):
             raise errors.MissingData('missing attribute value')
         return self._value
 
-    def _set_value(self, val):
+    def _set_value(self, val, skip_log = False, user = None):
         if self._atype == 'text':
             if type(val) not in [unicode, str]:
                 raise errors.SiptrackError('attribute value doesn\'t match type')

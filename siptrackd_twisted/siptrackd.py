@@ -41,7 +41,12 @@ from siptrackd_twisted import baserpc
 from siptrackd_twisted import log
 from siptrackd_twisted import permission
 from siptrackd_twisted import event
+#<<<<<<< HEAD
 from siptrackd_twisted import deviceconfig
+#||||||| merged common ancestors
+#=======
+from siptrackd_twisted import eventlog
+#>>>>>>> eventlog
 
 import siptrackdlib
 import siptrackdlib.errors
@@ -146,7 +151,11 @@ class SiptrackdRPC(baserpc.BaseRPC):
         else:
             new_parent = self.object_store.getOID(new_parent_oid,
                     user = session.user)
+        old_parent = obj.parent
         obj.relocate(new_parent, user = session.user)
+        if obj.class_name == 'device':
+            data = {'src_oid': old_parent.oid, 'dst_oid': new_parent.oid, 'src_name': old_parent.getAttributeValue('name', ''), 'dst_name': new_parent.getAttributeValue('name', '')}
+            obj.addEventLog('relocate device', data, session.user)
         yield obj.commit()
         defer.returnValue(True)
     xmlrpc_relocate = xmlrpc_move_oid
@@ -540,7 +549,7 @@ def run_siptrackd_twisted(listen_port, ssl_port,
 
     template_rule_rpc = template.TemplateRuleRPC(object_store, session_handler)
     template_rpc.putSubHandler('rule', template_rule_rpc)
-    
+ 
     template_rule_password_rpc = template.TemplateRulePasswordRPC(object_store, session_handler)
     template_rule_rpc.putSubHandler('password', template_rule_password_rpc)
     template_rule_assign_network_rpc = template.TemplateRuleAssignNetworkRPC(object_store, session_handler)
@@ -594,6 +603,12 @@ def run_siptrackd_twisted(listen_port, ssl_port,
 
     event_trigger_rule_python_rpc = event.EventTriggerRulePythonRPC(object_store, session_handler)
     event_trigger_rule_rpc.putSubHandler('python', event_trigger_rule_python_rpc)
+
+    event_log_rpc = eventlog.EventLogRPC(object_store, session_handler)
+    event_rpc.putSubHandler('log', event_log_rpc)
+
+    event_log_tree_rpc = eventlog.EventLogTreeRPC(object_store, session_handler)
+    event_log_rpc.putSubHandler('tree', event_log_tree_rpc)
 
     root_service = service.MultiService()
     if listen_port:

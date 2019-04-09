@@ -8,7 +8,12 @@ from siptrackdlib import errors
 from siptrackdlib import template
 from siptrackdlib import config
 from siptrackdlib import storagevalue
+#<<<<<<< HEAD
 from siptrackdlib import deviceconfig
+#||||||| merged common ancestors
+#=======
+from siptrackdlib import eventlog
+#>>>>>>> eventlog
 
 class DeviceTree(treenodes.BaseNode):
     class_id = 'DT'
@@ -37,6 +42,10 @@ class Device(treenodes.BaseNode):
     def _loaded(self, data = None):
         super(Device, self)._loaded(data)
 
+    def relocate(self, new_parent, user = None):
+        old_parent = self.parent
+        super(Device, self).relocate(new_parent, user)
+
     def remove(self, recursive, user = None, prune_networks = False):
         """Remove a device.
 
@@ -55,6 +64,11 @@ class Device(treenodes.BaseNode):
                 updated += association.prune(user)
         return updated
     delete = remove
+
+    def _remove(self, user):
+        ret = super(Device, self)._remove(user)
+        self.storageAction('remove_children', {'child_type': 'EL'})
+        return ret
 
     def autoAssignNetwork(self, user):
         for config_net in config.get_config_network_autoassign(self):
@@ -102,6 +116,11 @@ o.registerChild(password.Password)
 o.registerChild(config.ConfigNetworkAutoassign)
 o.registerChild(config.ConfigValue)
 o.registerChild(permission.Permission)
+#<<<<<<< HEAD
 o.registerChild(deviceconfig.DeviceConfig)
 o.registerChild(deviceconfig.DeviceConfigTemplate)
+#||||||| merged common ancestors
+#=======
+o.registerChild(eventlog.EventLog)
+#>>>>>>> eventlog
 

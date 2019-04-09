@@ -189,12 +189,20 @@ class Branch(object):
             ret = self._removeSingle(callback_data)
         return ret
 
-    def relocate(self, new_parent):
+    def relocate(self, new_parent, callback_data):
         """Relocate a branch (give it a new parent)."""
         self.parent.branches.remove(self)
         new_parent.branches.append(self)
         self.parent = new_parent
-        self.tree.relocate_callback(self)
+        self.tree.relocate_callback(self, callback_data)
+
+    def unlink(self):
+        """Used when unlinking branches that still exist, but should not be present in the tree.
+
+        Primarily used by event logs.
+        """
+        self.parent.branches.remove(self)
+        self.tree.unlinkedBranch(self.oid)
 
     def addBranch(self, oid, ext_data = None):
         """Create a new directly attached branch."""
@@ -328,6 +336,13 @@ class Tree(object):
         """
         del self.oid_mapping[oid]
 
+    def unlinkedBranch(self, oid):
+        """Used when unlinking branches that still exist, but should not be present in the tree.
+
+        Primarily used by event logs.
+        """
+        del self.oid_mapping[oid]
+
     def addBranch(self, oid, ext_data = None):
         """Create a new directly attached branch."""
         if self.branchExists(oid):
@@ -408,10 +423,10 @@ class Tree(object):
             return self.callbacks['remove'](branch, callback_data)
         return None
 
-    def relocate_callback(self, branch):
+    def relocate_callback(self, branch, callback_data):
         """Callback to indicate a branch being relocated (new parent)."""
         if 'relocate' in self.callbacks:
-            return self.callbacks['relocate'](branch)
+            return self.callbacks['relocate'](branch, callback_data)
         return None
 
     def free(self):

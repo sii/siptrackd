@@ -27,6 +27,13 @@ class AttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         obj = parent.add(session.user, 'attribute', name, atype, value)
+        if parent.class_name == 'device':
+            parent.addEventLog(
+                'create attribute',
+                {'name': name},
+                session.user,
+                affects=obj
+            )
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
@@ -43,8 +50,32 @@ class AttributeRPC(baserpc.BaseRPC):
                 value = str(value)
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
-        attribute.value = value
+        attribute._set_value(value, user=session.user)
+        if attribute.parent.class_name == 'device':
+            attribute.parent.addEventLog(
+                'update attribute',
+                {'node': attribute.name},
+                session.user,
+                affects=attribute
+            )
         yield self.object_store.commit(attribute)
+        defer.returnValue(True)
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_delete(self, session, oid, recursive = True):
+        """Delete a node."""
+        node = self.getOID(session, oid)
+        parent = node.parent
+        updated = node.delete(recursive, session.user)
+        if parent.class_name == 'device':
+            parent.addEventLog(
+                'remove attribute',
+                {'name': node.name},
+                session.user,
+                affects=node
+            )
+        yield self.object_store.commit(updated)
         defer.returnValue(True)
 
 class VersionedAttributeRPC(baserpc.BaseRPC):
@@ -64,6 +95,13 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         obj = parent.add(session.user, 'versioned attribute', name, atype, value, max_versions)
+        if parent.class_name == 'device':
+            parent.addEventLog(
+                'create attribute',
+                {'name': name},
+                session.user,
+                affects=obj
+            )
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
@@ -81,6 +119,13 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         attribute.value = value
+        if attribute.parent.class_name == 'device':
+            attribute.parent.addEventLog(
+                'update attribute',
+                {'name': attribute.name},
+                session.user,
+                affects=attribute
+            )
         yield self.object_store.commit(attribute)
         defer.returnValue(True)
 
@@ -91,6 +136,23 @@ class VersionedAttributeRPC(baserpc.BaseRPC):
         attribute = self.getOID(session, oid)
         attribute.max_versions = max_versions
         yield self.object_store.commit(attribute)
+        defer.returnValue(True)
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_delete(self, session, oid, recursive = True):
+        """Delete a node."""
+        node = self.getOID(session, oid)
+        parent = node.parent
+        updated = node.delete(recursive, session.user)
+        if parent.class_name == 'device':
+            parent.addEventLog(
+                'remove attribute',
+                {'name': node.name},
+                session.user,
+                affects=node
+            )
+        yield self.object_store.commit(updated)
         defer.returnValue(True)
 
 
@@ -114,6 +176,24 @@ class EncryptedAttributeRPC(baserpc.BaseRPC):
         attribute = self.getOID(session, oid)
         attribute.value = value
         yield self.object_store.commit(attribute)
+        defer.returnValue(True)
+
+
+    @helpers.ValidateSession()
+    @defer.inlineCallbacks
+    def xmlrpc_delete(self, session, oid, recursive = True):
+        """Delete a node."""
+        node = self.getOID(session, oid)
+        parent = node.parent
+        updated = node.delete(recursive, session.user)
+        if parent.class_name == 'device':
+            parent.addEventLog(
+                'remove attribute',
+                {'name': node.name},
+                session.user,
+                affects=node
+            )
+        yield self.object_store.commit(updated)
         defer.returnValue(True)
 
 
