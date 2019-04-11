@@ -177,6 +177,22 @@ class Storage(object):
         yield self.runOperation(q, (oid,))
         defer.returnValue(True)
 
+    @defer.inlineCallbacks
+    def removeChildOID(self, parent_oid, class_id, txn = None):
+        if self.readonly:
+            raise errors.StorageError('storage in readonly mode')
+        if txn:
+            op = txn.execute
+        else:
+            op = self.db.runOperation
+        q = """delete from nodedata where oid in (select oid from idmap where parent_oid = ? and class_id = ?)"""
+        yield op(q, (parent_oid, class_id))
+        q = """delete from associations where self_oid in (select oid from idmap where parent_oid = ? and class_id = ?)"""
+        yield op(q, (parent_oid, class_id))
+        q = """delete from idmap where parent_oid = ? and class_id = ?"""
+        yield op(q, (parent_oid, class_id))
+        defer.returnValue(True)
+
     def associate(self, self_oid, other_oid, txn = None):
         if self.readonly:
             raise errors.StorageError('storage in readonly mode')
@@ -274,12 +290,29 @@ class Storage(object):
         defer.returnValue(data)
 
     @defer.inlineCallbacks
-    def makeOIDData(self):
+    def makeOIDClassMapping(self, skip_class_ids):
+        def run(txn):
+            q = """select oid, class_id from idmap"""
+            res = txn.execute(q)
+            mapping = {}
+            for oid, class_id in txn:
+                if class_id in skip_class_ids:
+                    continue
+                mapping[oid] = class_id
+            return mapping
+        ret = yield self.db.runInteraction(run)
+        defer.returnValue(ret)
+
+    @defer.inlineCallbacks
+    def makeOIDData(self, skip_class_ids):
         def run(txn):
             data_mapping = {}
-            q = """select oid, name, datatype, data from nodedata"""
+            q = """select nodedata.oid, nodedata.name, nodedata.datatype, nodedata.data, idmap.class_id from nodedata, idmap where nodedata.oid = idmap.oid"""
+            #q = """select oid, name, datatype, data from nodedata"""
             txn.execute(q)
-            for oid, name, dtype, data in txn:
+            for oid, name, dtype, data, class_id in txn:
+                if class_id in skip_class_ids:
+                    continue
                 data = self._parseReadData(dtype, data)
                 if oid not in data_mapping:
                     data_mapping[oid] = {}

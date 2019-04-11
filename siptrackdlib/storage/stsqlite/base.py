@@ -280,6 +280,7 @@ class Storage(object):
         def run(txn):
             data_mapping = {}
             q = """select nodedata.oid, nodedata.name, nodedata.datatype, nodedata.data, idmap.class_id from nodedata, idmap where nodedata.oid = idmap.oid"""
+            #q = """select oid, name, datatype, data from nodedata"""
             res = txn.execute(q)
             for oid, name, dtype, data, class_id in res:
                 if class_id in skip_class_ids:
