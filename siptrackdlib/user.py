@@ -703,7 +703,8 @@ class UserCommon(object):
             pk.changePassword(old_password, new_password)
             updated.append(pk)
         else:
-            _, self.resetPasswordKey(new_password)
+            _, u = self.resetPasswordKey(new_password)
+            updated += u
         updated += self.resetPendingSubKeys()
         return updated
 
