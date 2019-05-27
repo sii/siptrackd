@@ -119,7 +119,7 @@ class UserManagerLDAP(treenodes.BaseNode):
 
     def _findUserGroups(self, ldap_con, base_dn, user_dn):
         """Return a list of all groups the given user is a member of.
-        
+
         The DN of each group is returned.
         """
         user_groups = []
@@ -682,13 +682,11 @@ class UserCommon(object):
     def resetPasswordDependencies(self, new_password):
         """Reset everything that depends on the users password."""
         updated = []
-        for subkey in list(self.listChildren(include = ['subkey'])):
-            subkey.delete(recursive = True)
-            updated.append(subkey)
-        pk = self.resetPasswordKey(new_password)
-        updated.append(pk)
-        updated += self.connectPasswordKey(pk, new_password, new_password)
-        pk, _u = self.resetPublicKey(new_password)
+        for subkey in list(self.listChildren(include=['subkey'])):
+            updated += (subkey.delete(recursive=True))
+        pk, _u = self.resetPasswordKey(new_password)
+        updated += _u
+        pubk, _u = self.resetPublicKey(new_password)
         updated += _u
         updated += self.resetPendingSubKeys()
         return updated
@@ -772,7 +770,7 @@ class UserCommon(object):
 
     def connectPasswordKey(self, password_key, user_password, pk_password):
         """Enable automatic unlocking of a password key when a user logs in.
-        
+
         password_key is a password key instance
         user_password is the users actual password
 
@@ -789,7 +787,7 @@ class UserCommon(object):
             updated = [k]
             if hasattr(k, '_updated_create'):
                 updated += k._updated_create
-        else: 
+        else:
             pk = self.getPublicKey()
             if not pk:
                 raise errors.SiptrackError('No public key found for user, the public key will be created the first time the user logs in to siptrack.')
@@ -878,7 +876,7 @@ class UserLocal(treenodes.BaseNode, UserCommon):
     def resetPassword(self, new_password):
         """Reset a users password.
 
-        This will remove all old subkeys and other password dependent 
+        This will remove all old subkeys and other password dependent
         stuff.
         """
         if type(new_password) not in [unicode, str]:
@@ -977,7 +975,7 @@ class UserLDAP(treenodes.BaseNode, UserCommon):
     def resetPassword(self, new_password):
         """Reset a users password.
 
-        This will remove all old subkeys and other password dependent 
+        This will remove all old subkeys and other password dependent
         stuff.
         """
         if type(new_password) not in [unicode, str]:
@@ -994,7 +992,7 @@ class UserLDAP(treenodes.BaseNode, UserCommon):
 #            self.resetPendingSubKeys()
 #            self.resetPublicKey()
 #            self._setPassword(password)
-        
+
         updated = self._userInit(password) + [self]
         return updated
 
