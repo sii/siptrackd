@@ -3,3 +3,5 @@
 build
 *_local.cfg
 *.log
+*.cfg
+!storage.cfg
