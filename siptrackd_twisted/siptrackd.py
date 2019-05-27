@@ -797,7 +797,7 @@ def main(argv):
     if args.list_storage_backends:
         for backend in siptrackdlib.storage.list_backends():
             print backend
-        return 1
+        return 0
 
     if not args.listen_port:
         args.listen_port = DEFAULT_LISTEN_PORT
