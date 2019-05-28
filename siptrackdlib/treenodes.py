@@ -279,7 +279,7 @@ class BaseNode(object):
 
     def _relocate(self):
         """Relocate (new parent) an object. Called from branch callbacks.
-        
+
         Not for manual usage, should only be called by the branch callback
         when a branch is relocated.
         """
@@ -315,7 +315,7 @@ class BaseNode(object):
 
     def prune(self, user = None):
         """Used to prune empty/unused nodes.
-        
+
         Override me in a subclass.
         See for example network.ipv4.Network for sample usage.
         """
@@ -429,7 +429,7 @@ class BaseNode(object):
             no_match_break = False, user = None):
         re_compiled = re.compile(re_pattern, re.IGNORECASE)
         """Searches for nodes.
-        
+
         Search the node tree for nodes attributes that match the regular
         expression re_pattern.
 
@@ -495,7 +495,7 @@ class BaseNode(object):
 
     def getParent(self, class_name):
         """Return the nearest matching parent of type class_name.
-        
+
         This is sort of ugly.
         """
         match = self.parent
@@ -527,7 +527,7 @@ class BaseNode(object):
 
     def getAttribute(self, name):
         """Returns the first matched directly attached attribute with name.
-        
+
         This is a bit of an ugly hack. Should be cleaned up.
         """
         for obj in self.listChildren(
@@ -625,10 +625,12 @@ class BaseNode(object):
             event_data['username'] = user.user.getUsername()
             event_data['user_oid'] = user.user.oid
         log = self.add(user, 'event log', event_type, event_data)
+        self.ctime.set(int(time.time()))
+        self.object_store.commit(log)
         if affects:
             affects.storageAction('affecting_node', {'node': log})
         else:
             self.storageAction('affecting_node', {'node': log})
-        log.branch.unlink()
+        self.object_store.commit(log)
+        #log.branch.unlink()
         return log
-
