@@ -17,6 +17,8 @@ cache:
 
 before_script:
   - python -V
+  - apt-get update -y
+  - apt-get install libldap2-dev libmariadb-dev libsasl2-dev -y
 
 
 install_package:
@@ -32,5 +34,5 @@ test_package:
   script:
     - pip install -r requirements.txt
     - python setup.py install
-    - python siptrackd -b stsqlite -s storage.cfg --list-storage-backends
+    - python -m twisted.trial tests
 
