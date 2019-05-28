@@ -17,6 +17,7 @@ cache:
 
 before_script:
   - python -V
+  - apt-get update
   - apt-get install libldap2-dev libmariadb-dev
 
 
