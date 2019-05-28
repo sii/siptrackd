@@ -36,6 +36,3 @@ test_package:
     - python setup.py install
     - python -m twisted.trial tests
 
-  only:
-    - unittests
-
