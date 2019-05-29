@@ -625,10 +625,13 @@ class BaseNode(object):
             event_data['username'] = user.user.getUsername()
             event_data['user_oid'] = user.user.oid
         log = self.add(user, 'event log', event_type, event_data)
+        self.ctime.set(int(time.time()))
+        self.object_store.commit(log)
         if affects:
             affects.storageAction('affecting_node', {'node': log})
         else:
             self.storageAction('affecting_node', {'node': log})
-        log.branch.unlink()
+        self.object_store.commit(log)
+        # log.branch.unlink()
         return log
 

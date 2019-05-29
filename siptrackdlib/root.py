@@ -18,7 +18,9 @@ tree_callbacks = {
         'relocate': treenodes.relocate_callback
 }
 
-UNLINKED_CLASS_IDS = ['EL']
+# UNLINKED_CLASS_IDS = ['EL']
+UNLINKED_CLASS_IDS = []
+
 
 class ObjectStore(object):
     def __init__(self, storage, preload = True, searcher = None):
