@@ -34,6 +34,6 @@ test_package:
   script:
     - pip install -r requirements.txt
     - python setup.py install
-    - python siptrackd upgrade
+    - python siptrackd upgrade -s storage.cfg -b stsqlite
     - python -m twisted.trial tests
 
