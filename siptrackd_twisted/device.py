@@ -72,4 +72,3 @@ gatherer.node_data_registry.register(device.DeviceTree,
         gatherer.no_data_extractor)
 gatherer.node_data_registry.register(device.DeviceCategory,
         gatherer.no_data_extractor)
-
