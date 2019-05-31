@@ -4,3 +4,5 @@ build
 *_local.cfg
 *.log
 st-whoosh
+*.cfg
+!storage.cfg

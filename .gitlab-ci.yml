@@ -1,0 +1,39 @@
+image: python:2.7-stretch
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+
+stages:
+  - build
+  - test
+
+
+cache:
+  paths:
+    - .cache/pip
+    - builds
+
+
+before_script:
+  - python -V
+  - apt-get update -y
+  - apt-get install libldap2-dev libmariadb-dev libsasl2-dev -y
+
+
+install_package:
+  stage: build
+  script:
+    - pip install -r requirements.txt
+    - python setup.py install
+
+
+# No good unittests to run yet so we're only testing if siptrackd executes.
+test_package:
+  stage: test
+  script:
+    - pip install -r requirements.txt
+    - python setup.py install
+    - python siptrackd --upgrade -s storage.cfg -b stsqlite
+    - python -m twisted.trial tests
+

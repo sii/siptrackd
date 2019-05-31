@@ -4,6 +4,9 @@ Siptrackd is the backend API part of Siptrack, to make documentation easier all 
 
 # Quickstart
 
+For the first command you must replace dnf and packages with your own distro package names.
+
+    $ sudo dnf install openldap-devel mariadb mariadb-devel cyrus-sasl-devel
     $ git clone https://github.com/sii/siptrackd
     $ cd siptrackd
     $ virtualenv .venv
