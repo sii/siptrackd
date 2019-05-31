@@ -27,6 +27,12 @@ class AttributeRPC(baserpc.BaseRPC):
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
         obj = parent.add(session.user, 'attribute', name, atype, value)
+        if parent.class_name == 'password' and parent.parent.class_name == 'device' and name == 'username':
+            data = {'device_user': value}
+            if parent.password_key:
+                key_name = parent.password_key.getAttributeValue('name', '')
+                data.update({'password_key_name': key_name})
+            parent.parent.addEventLog('device user added', data, session.user, affects=obj)
         if parent.class_name == 'device':
             parent.addEventLog(
                 'create attribute',
@@ -34,6 +40,7 @@ class AttributeRPC(baserpc.BaseRPC):
                 session.user,
                 affects=obj
             )
+
         yield self.object_store.commit(obj)
         defer.returnValue(obj.oid)
 
@@ -50,11 +57,11 @@ class AttributeRPC(baserpc.BaseRPC):
                 value = str(value)
             except:
                 raise siptrackdlib.errors.SiptrackError('attribute value doesn\'t match type')
-        attribute._set_value(value, user=session.user)
+        attribute._set_value(value)
         if attribute.parent.class_name == 'device':
             attribute.parent.addEventLog(
                 'update attribute',
-                {'node': attribute.name},
+                {'name': attribute.name},
                 session.user,
                 affects=attribute
             )

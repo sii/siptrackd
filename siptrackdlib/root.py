@@ -18,9 +18,8 @@ tree_callbacks = {
         'relocate': treenodes.relocate_callback
 }
 
-# UNLINKED_CLASS_IDS = ['EL']
 UNLINKED_CLASS_IDS = []
-
+# UNLINKED_CLASS_IDS = ['EL']
 
 class ObjectStore(object):
     def __init__(self, storage, preload = True, searcher = None):
@@ -155,7 +154,7 @@ class ObjectStore(object):
         # (ie. data for UNLINKED_CLASS_IDS - event logs).
         ret = yield self.storage.makeOIDClassMapping(UNLINKED_CLASS_IDS)
         defer.returnValue(ret)
-    
+
     @defer.inlineCallbacks
     def _getNextOID(self):
         """Return the next available object id.
@@ -211,7 +210,7 @@ class ObjectStore(object):
         """Quick search for text strings.
 
         Uses the searcher interface from search.py.
-        
+
         search_pattern : text pattern to search for.
         include    : include only node types listed
         exclude    : exclude node types listed
@@ -254,7 +253,7 @@ class ObjectStore(object):
         """Quick search for text strings.
 
         Uses the searcher interface from search.py.
-        
+
         search_pattern : text pattern to search for.
         include    : include only node types listed
         exclude    : exclude node types listed

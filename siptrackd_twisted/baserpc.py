@@ -36,21 +36,24 @@ class BaseRPC(xmlrpc.XMLRPC):
     def xmlrpc_delete(self, session, oid, recursive = True):
         """Delete a node."""
         node = self.getOID(session, oid)
+        if node.parent.class_name == 'device' and node.class_name == 'password':
+            data = {'device_user': node.getAttributeValue('username', '')}
+            node.parent.addEventLog('device user removed', data, session.user, affects=node.parent)
         updated = node.delete(recursive, session.user)
         yield self.object_store.commit(updated)
         defer.returnValue(True)
 
     @defer.inlineCallbacks
-    def _cbRender(self, result, request, responseFailed=None): 
+    def _cbRender(self, result, request, responseFailed=None):
         """Override method to do threaded xmlrpclib.dump.
 
         This is ugly and non-portable, but will have to do for now.
         """
-        if responseFailed: 
-            return 
- 
-        if isinstance(result, xmlrpc.Handler): 
-            result = result.result 
+        if responseFailed:
+            return
+
+        if isinstance(result, xmlrpc.Handler):
+            result = result.result
         if not isinstance(result, xmlrpc.Fault):
             result = (result,)
         try:
@@ -79,4 +82,3 @@ class BaseRPC(xmlrpc.XMLRPC):
             data, methodresponse=True,
             allow_none=self.allowNone)
         return content
-

@@ -9,7 +9,7 @@ from siptrackdlib import storagevalue
 
 class NotEnoughDataError(errors.SiptrackError):
     """Not enough data available _yet_ to complete a variable expansion.
-    
+
     Used by fixed rules during variable expansion to indicate that there is
     currently not enough data available to complete the expansion.
     """
@@ -17,7 +17,7 @@ class NotEnoughDataError(errors.SiptrackError):
 
 def split_string(input):
     """Split a string into arguments.
-    
+
     Works sort of like str.split(), except that string quoting and escaping
     is permitted. "" quotes and \ escapes.
     Returns a list of the split string.
@@ -309,7 +309,6 @@ class TemplateRuleAssignNetwork(BaseTemplateRule):
         except errors.SiptrackError:
             updated = []
         return updated
-        
 
 class TemplateRuleSubdevice(BaseTemplateRule):
     class_id = 'TMPLRULESUBDEV'
@@ -851,4 +850,3 @@ o.registerChild(attribute.VersionedAttribute)
 o = object_registry.registerClass(TemplateRuleFlushAssociations)
 o.registerChild(attribute.Attribute)
 o.registerChild(attribute.VersionedAttribute)
-
